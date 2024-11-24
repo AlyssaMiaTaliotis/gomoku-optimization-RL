@@ -1,0 +1,9 @@
+win: 1                # Reward for winning
+draw: 0               # Reward for a draw
+invalid_move: -1      # Penalty for invalid moves
+default: 0            # Default reward for non-terminal moves
+
+intermediate_rewards: # Optional intermediate rewards
+  block_opponent: 0.5 # Reward for blocking an opponent's immediate threat
+  create_double_threat: 0.7 # Reward for creating a double threat
+  expand_influence: 0.3 # Reward for expanding strategic influence
