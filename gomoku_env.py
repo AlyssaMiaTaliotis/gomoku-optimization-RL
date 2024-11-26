@@ -17,10 +17,6 @@ class GomokuEnvironment:
     def load_config(self, config_path: str) -> dict:
         """
         Loads the reward configuration from a YAML file.
-        Args:
-            config_path (str): Path to the YAML file containing reward configurations.
-        Returns:
-            dict: A dictionary of reward settings loaded from the YAML file.
         """
 
         with open(config_path, "r") as file:
@@ -37,48 +33,58 @@ class GomokuEnvironment:
         self.current_player = 1  
         self.done = False
         return self.board
-    
-    def is_valid_action(self, action: tuple[int, int]) -> bool:
-        """
-        Checks if an action is valid.
-        Args:
-            action (tuple[int, int]): A tuple representing the row and column of the action.
-        Returns:
-            bool: True if the action is valid, False otherwise.
-        """
 
-        row, col = action
-        # Checking if the action is in the bounds of the board is for the human player, not the agent
-        return 0 <= row < self.board_size and 0 <= col < self.board_size and self.board[row, col] == 0
-    
     def calculate_reward(self, action: tuple[int, int], win: bool = False, draw: bool = False, invalid: bool = False) -> float:
         """
         Calculates the reward based on the action and the game state.
-        Args:
-            action (tuple[int, int]): The action taken, represented as a (row, col) tuple.
-            win (bool): Whether the action results in a win.
-            draw (bool): Whether the game ends in a draw.
-            invalid (bool): Whether the action is invalid.
-        Returns:
-            float: The calculated reward based on the reward configuration.
         """
-
         if invalid:
-            return self.reward_config["invalid_move"]
+            return self.reward_config.get("invalid_move", 0)
         if win:
-            return self.reward_config["win"]
+            return self.reward_config.get("win", 0)
         if draw:
-            return self.reward_config["draw"]
-        
-        # Add more intermediate rewards if specified in the configuration
-        # if self.reward_config.get("intermediate_rewards"):
-        #     # Example: Check if the move blocks an opponent's threat
-        #     if self.check_block_opponent(action):
-        #         return self.reward_config["intermediate_rewards"].get("block_opponent", 0)
-            
-        return self.reward_config["default"]
+            return self.reward_config.get("draw", 0)
+
+        # Default reward if no intermediate conditions match
+        reward = self.reward_config.get("default", 0)
+
+        # Intermediate Rewards
+        intermediate_rewards = self.reward_config.get("intermediate_rewards", {})
+        blocking_rewards = intermediate_rewards.get("blocking_opponent_approach", {})
+        action_rewards = intermediate_rewards.get("action_approach", {})
+
+        # Handle blocking-based rewards for the opponent
+        if blocking_rewards:
+            # Get counts for all directions
+            opponent_counts = self.count_in_a_row_all_directions(action, player = 3 - self.current_player)
+
+            for direction, count in opponent_counts.items():
+                if count - 1 == 4:
+                    reward += blocking_rewards.get("block_four", 0)
+                elif count - 1 == 3:
+                    reward += blocking_rewards.get("block_three", 0)
+
+        if action_rewards:
+            # Get counts for all directions
+            counts = self.count_in_a_row_all_directions(action)
+
+            for direction, count in counts.items():
+                if count == 4:
+                    reward += action_rewards.get("four_in_a_row", 0)
+                elif count == 3:
+                    reward += action_rewards.get("three_in_a_row", 0)
+                elif count == 2:
+                    reward += action_rewards.get("two_in_a_row", 0)
+
+            # Check for additional conditions like double threat
+            if self.creates_double_threat(action):
+                reward += action_rewards.get("double_threat", 0)
+            if self.places_far_from_current_group(action) and reward == 0:
+                reward += action_rewards.get("far_stone_penalty", 0)
+
+        return reward
+
     
-    # For invalid action -> agent will be penalized and prompted to try again
     def step(self, action: tuple[int, int]) -> tuple[np.ndarray, float, bool, dict]:
         """
         Takes an action and updates the environment.
@@ -91,7 +97,7 @@ class GomokuEnvironment:
                 - bool: Whether the game has ended.
                 - dict: Additional information (e.g., reasons for terminal states or invalid moves).
         """
-
+        # For invalid action -> agent will be penalized and prompted to try again
         if not self.is_valid_action(action):
             reward = self.calculate_reward(action, invalid=True)
             return self.board, reward, False, {"info": "Invalid move"}
@@ -110,55 +116,136 @@ class GomokuEnvironment:
             reward = self.calculate_reward(action, draw=True)
             self.done = True
             return self.board, reward, self.done, {"info": "Draw"}
+        
+        # Calculate intermediate rewards
+        reward = self.calculate_reward(action)
 
         # Switch turns
         self.current_player = 3 - self.current_player  
-        reward = self.calculate_reward(action)
+
         return self.board, reward, self.done, {}
+    
+    def is_valid_action(self, action: tuple[int, int]) -> bool:
+        """
+        Checks if an action is valid.
+        """
+
+        row, col = action
+        # Checking if the action is in the bounds of the board is for the human player, not the agent
+        return 0 <= row < self.board_size and 0 <= col < self.board_size and self.board[row, col] == 0
     
     def check_win(self, row: int, col: int) -> bool:
         """
         Checks if the current player has won the game.
-        Args:
-            row (int): The row index of the most recent move.
-            col (int): The column index of the most recent move.
-        Returns:
-            bool: True if the current player has won, False otherwise.
         """
+        # Get counts for all directions for the current player
+        counts = self.count_in_a_row_all_directions((row, col))
 
-        player = self.board[row, col]
-        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
-        
-        for dr, dc in directions:
-            count = 1
-            # Count consecutive stones in the forward direction
-            for step in range(1, 5): 
+        # Check if any direction has 5 or more stones in a row
+        return any(count >= 5 for count in counts.values())
+
+        # return self.count_in_a_row((row, col)) >= 5
+    
+    def check_draw(self) -> bool:
+        """
+        Checks if the game is a draw (i.e., the board is full).
+        """
+        return np.all(self.board != 0)
+    
+    def count_in_a_row_all_directions(self, action: tuple[int, int], player: int = None) -> dict:
+        """
+        Counts the number of consecutive stones for the player in all directions.
+        """
+        if player is None:
+            player = self.current_player
+        row, col = action
+
+        # Directions: horizontal, vertical, diagonal (top-left to bottom-right), anti-diagonal
+        directions = {
+            "horizontal": (0, 1),
+            "vertical": (1, 0),
+            "diagonal": (1, 1),
+            "anti_diagonal": (1, -1),
+        }
+
+        counts = {}
+        for direction, (dr, dc) in directions.items():
+            count = 1  
+            # Forward direction
+            for step in range(1, 5):
                 r, c = row + dr * step, col + dc * step
                 if 0 <= r < self.board_size and 0 <= c < self.board_size and self.board[r, c] == player:
                     count += 1
                 else:
                     break
 
-             # Count consecutive stones in the backward direction
-            for step in range(1, 5): 
+            # Backward direction
+            for step in range(1, 5):
                 r, c = row - dr * step, col - dc * step
                 if 0 <= r < self.board_size and 0 <= c < self.board_size and self.board[r, c] == player:
                     count += 1
                 else:
                     break
+
+            counts[direction] = count
+
+        return counts
+    
+    def creates_double_threat(self, action: tuple[int, int]) -> bool:
+        """
+        Checks if the current action creates a "double threat" - a line of 4 with space on both sides.
+        """
+        row, col = action
+        player = self.board[row, col]
+         # Vertical, horizontal, diagonals
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)] 
+
+        for dr, dc in directions:
+            count = 1
+            empty_before = False
+            empty_after = False
+
+            # Forward direction
+            for step in range(1, 5):
+                r, c = row + dr * step, col + dc * step
+                if 0 <= r < self.board_size and 0 <= c < self.board_size:
+                    if self.board[r, c] == player:
+                        count += 1
+                    elif self.board[r, c] == 0:
+                        empty_after = True
+                        break
+                    else:
+                        break
             
-            if count >= 5:
+            # Backward direction
+            for step in range(1, 5):
+                r, c = row - dr * step, col - dc * step
+                if 0 <= r < self.board_size and 0 <= c < self.board_size:
+                    if self.board[r, c] == player:
+                        count += 1
+                    elif self.board[r, c] == 0:
+                        empty_before = True
+                        break
+                    else:
+                        break
+
+            if count == 4 and empty_before and empty_after:
                 return True
-        
+
         return False
     
-    def check_draw(self) -> bool:
+    def places_far_from_current_group(self, action: tuple[int, int]) -> bool:
         """
-        Checks if the game is a draw (i.e., the board is full).
-        Returns:
-            bool: True if the game ends in a draw, False otherwise.
+        Checks if the action places a stone far from the player's current group of stones.
         """
-        return np.all(self.board != 0)
+        row, col = action
+        player = self.current_player
+        for r in range(max(0, row - 4), min(self.board_size, row + 5)):
+            for c in range(max(0, col - 4), min(self.board_size, col + 5)):
+                if self.board[r, c] == player and not (r == row and c == col):
+                    return False
+        return True
+
     
     def render(self) -> None:
         """
@@ -177,15 +264,3 @@ class GomokuEnvironment:
             print(f"{row_label} | {row_content} |")  
             print(horizontal_line)  
         print("\n")
-
-
-# Example usage
-env = GomokuEnvironment()
-state = env.reset()
-env.render()
-
-# Simulate a few moves
-env.step((7, 7))  # Player 1 places a stone
-env.render()
-env.step((7, 8))  # Player 2 places a stone
-env.render()

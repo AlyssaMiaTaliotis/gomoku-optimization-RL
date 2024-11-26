@@ -1,0 +1,16 @@
+win: 1                 # Reward for winning
+draw: 0                # Reward for a draw
+default: 0             # Reward for non-terminal moves
+invalid_move: -1       # Penalty for invalid moves
+
+intermediate_rewards:
+  action_approach:
+    two_in_a_row: 0.1         # Reward for 2 stones in a row
+    three_in_a_row: 0.2       # Reward for 3 stones in a row
+    four_in_a_row: 0.5        # Reward for 4 stones in a row
+    far_stone_penalty: -0.3   # Penalty for placing a stone 5 or more places away
+    double_threat: 0.3        # Reward for creating a double threat (4 with space on both sides)
+    
+  blocking_opponent_approach:
+    block_three: 0.2          # Reward for blocking opponent's 3 in a row
+    block_four: 0.5           # Reward for blocking opponent's 4 in a row
