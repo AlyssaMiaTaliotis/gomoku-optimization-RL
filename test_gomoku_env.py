@@ -7,9 +7,9 @@ def test_gomoku_environment():
 
     # Case 1: Invalid move
     print("Test Case 1: Invalid Move")
-    env.board[5, 5] = 1  # Simulate a stone already placed
-    board, reward, done, info = env.step((5, 5))  # Place on the same spot
-    print(board, reward, info)  # Expected: -1 (invalid move)
+    env.board[5, 5] = 1  
+    board, reward, done, info = env.step((5, 5))  
+    print(board, reward, info)  
     assert reward == -1, "Test Case 1 Failed: Invalid move did not return -1"
 
     # Case 2: Forming 2 in a row
@@ -107,19 +107,18 @@ def test_gomoku_environment():
 
     # Setup: Create an intersection where X forms horizontal and vertical sequences
     env.board[7, 6] = 1  # Horizontal: X
-    # env.board[7, 9] = 1  # Horizontal + Vertical: X
     env.board[7, 8] = 1  # Horizontal: X
     env.board[6, 7] = 1  # Vertical: X
     env.board[8, 7] = 1  # Vertical: X
 
-    board, reward, done, info = env.step((7, 7))  # X extends horizontal row to 4
+    board, reward, done, info = env.step((7, 7))  # X extends horizontal row to 3
     print(board, reward, "X")  # Expected: Sum of rewards for 3-in-a-row (horizontal) + 3-in-a-row (vertical)
     assert reward == 0.4, "Test Case 9 Failed: Reward for forming two 3 in a rows is incorrect"
     
 
     board, reward, done, info = env.step((0, 0))  # O random move
     print(board, reward, "O")  # Expected: Default reward (0)
-    assert reward == -0.3, "Test Case 9 Failed: Reward for random move is incorrect"
+    assert reward == 0, "Test Case 9 Failed: Reward for random move is incorrect"
 
     # Another combination move
     board, reward, done, info = env.step((9, 7))  # X extends vertical row to 4
@@ -205,6 +204,31 @@ def test_gomoku_environment():
     board, reward, done, info = env.step((7, 10))  # X
     print(board, reward, "X")  # Expected: 0.5
     assert reward == 0.5, "Test Case 12 Failed: Reward for blocking 4 is incorrect"
+
+    # Case 14: First move for X
+    print("\nTest Case 14: First move for X")
+    env.reset()
+    board, reward, done, info = env.step((5, 5))  
+    print(board, reward, "X")  # Expected: 0
+    assert reward == 0, "Test Case 13 Failed: Invalid reward for the first X"
+
+    # Case 15: First move for O
+    print("\nTest Case 15: First move for X")
+    env.reset()
+    env.step((5, 5))  
+    board, reward, done, info = env.step((14, 14))  
+    print(board, reward, "O")  # Expected: 0
+    assert reward == 0, "Test Case 15 Failed: Invalid reward for the first O"
+
+
+    # Case 16: Stone too far placed 
+    print("\nTest Case 15: Stone too far placed ")
+    env.reset()
+    env.step((0, 1))  # X
+    env.step((0, 5))   # O
+    board, reward, done, info = env.step((9, 9))  
+    print(board, reward, "X")  # Expected: -0.3
+    assert reward == -0.3, "Test Case 16 Failed: Invalid reward for stone placed too far"
 
 
 

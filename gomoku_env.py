@@ -1,5 +1,6 @@
 import numpy as np
 import yaml
+from colorama import Fore, Style
 
 class GomokuEnvironment:
     def __init__(self, board_size: int = 15, config_path: str = "rewards/rewards_default.yml"):
@@ -32,6 +33,8 @@ class GomokuEnvironment:
         self.board = np.zeros((self.board_size, self.board_size), dtype=int)
         self.current_player = 1  
         self.done = False
+        self.winning_sequence = []
+        self.move_count = 0
         return self.board
 
     def calculate_reward(self, action: tuple[int, int], win: bool = False, draw: bool = False, invalid: bool = False) -> float:
@@ -79,7 +82,7 @@ class GomokuEnvironment:
             # Check for additional conditions like double threat
             if self.creates_double_threat(action):
                 reward += action_rewards.get("double_threat", 0)
-            if self.places_far_from_current_group(action) and reward == 0:
+            if self.move_count > 2 and self.places_far_from_current_group(action) and reward == 0:
                 reward += action_rewards.get("far_stone_penalty", 0)
 
         return reward
@@ -99,26 +102,29 @@ class GomokuEnvironment:
         """
         # For invalid action -> agent will be penalized and prompted to try again
         if not self.is_valid_action(action):
-            reward = self.calculate_reward(action, invalid=True)
+            reward = round(self.calculate_reward(action, invalid=True), 1)
             return self.board, reward, False, {"info": "Invalid move"}
         
         # Update the board with the current player's move
         row, col = action
         self.board[row, col] = self.current_player
+
+        # Increment the move count
+        self.move_count += 1
         
         # Check for terminal conditions
         if self.check_win(row, col):
-            reward = self.calculate_reward(action, win=True)
+            reward = round(self.calculate_reward(action, win=True), 1)
             self.done = True
             return self.board, reward, self.done, {"info": f"Player {self.current_player} wins"}
 
         if self.check_draw():
-            reward = self.calculate_reward(action, draw=True)
+            reward = round(self.calculate_reward(action, draw=True), 1)
             self.done = True
             return self.board, reward, self.done, {"info": "Draw"}
         
         # Calculate intermediate rewards
-        reward = self.calculate_reward(action)
+        reward = round(self.calculate_reward(action), 1)
 
         # Switch turns
         self.current_player = 3 - self.current_player  
@@ -139,12 +145,10 @@ class GomokuEnvironment:
         Checks if the current player has won the game.
         """
         # Get counts for all directions for the current player
-        counts = self.count_in_a_row_all_directions((row, col))
+        counts = self.count_in_a_row_all_directions((row, col), track_sequence=True)
 
         # Check if any direction has 5 or more stones in a row
         return any(count >= 5 for count in counts.values())
-
-        # return self.count_in_a_row((row, col)) >= 5
     
     def check_draw(self) -> bool:
         """
@@ -152,7 +156,7 @@ class GomokuEnvironment:
         """
         return np.all(self.board != 0)
     
-    def count_in_a_row_all_directions(self, action: tuple[int, int], player: int = None) -> dict:
+    def count_in_a_row_all_directions(self, action: tuple[int, int], player: int = None, track_sequence: bool = False) -> dict:
         """
         Counts the number of consecutive stones for the player in all directions.
         """
@@ -171,11 +175,15 @@ class GomokuEnvironment:
         counts = {}
         for direction, (dr, dc) in directions.items():
             count = 1  
+            sequence = [(row, col)]
+
             # Forward direction
             for step in range(1, 5):
                 r, c = row + dr * step, col + dc * step
                 if 0 <= r < self.board_size and 0 <= c < self.board_size and self.board[r, c] == player:
                     count += 1
+                    if track_sequence:
+                        sequence.append((r, c))
                 else:
                     break
 
@@ -184,10 +192,17 @@ class GomokuEnvironment:
                 r, c = row - dr * step, col - dc * step
                 if 0 <= r < self.board_size and 0 <= c < self.board_size and self.board[r, c] == player:
                     count += 1
+                    if track_sequence:
+                        sequence.append((r, c))
                 else:
                     break
-
+            
             counts[direction] = count
+
+             # If tracking the sequence and a win is detected
+            if track_sequence and count >= 5:
+                self.winning_sequence = sequence[:5]
+                break 
 
         return counts
     
@@ -252,15 +267,23 @@ class GomokuEnvironment:
         Prints the current state of the board as a grid with cell outlines.
         Returns: None
         """
-        column_labels = "     " + "   ".join("abcdefghijklmno"[:self.board_size])  
-        print(column_labels) 
+        column_labels = "     " + "   ".join("abcdefghijklmno"[:self.board_size])
+        print(column_labels)
 
-        horizontal_line = "   +" + "---+" * self.board_size  
+        horizontal_line = "   +" + "---+" * self.board_size
         for i, row in enumerate(self.board):
             if i == 0:
-                print(horizontal_line)  
-            row_label = f"{i + 1:2}"  
-            row_content = " | ".join("X" if x == 1 else "O" if x == 2 else " " for x in row)
-            print(f"{row_label} | {row_content} |")  
-            print(horizontal_line)  
+                print(horizontal_line)
+            row_label = f"{i + 1:2}"
+            row_content = []
+            for j, cell in enumerate(row):
+                if self.winning_sequence and (i, j) in self.winning_sequence:
+                    if cell == 1:
+                        row_content.append(Style.BRIGHT + Fore.RED + "X" + Style.RESET_ALL)
+                    elif cell == 2:
+                        row_content.append(Style.BRIGHT + Fore.BLUE + "O" + Style.RESET_ALL)
+                else:
+                    row_content.append("X" if cell == 1 else "O" if cell == 2 else " ")
+            print(f"{row_label} | " + " | ".join(row_content) + " |")
+            print(horizontal_line)
         print("\n")
