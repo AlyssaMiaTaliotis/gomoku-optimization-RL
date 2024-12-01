@@ -1,1 +1,5 @@
 .DS_Store
+
+/tf_env
+/tf-env
+/__pycache__
