@@ -3,3 +3,6 @@
 /tf_env
 /tf-env
 /__pycache__
+
+*.pth
+*.npy
