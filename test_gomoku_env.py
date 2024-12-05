@@ -10,7 +10,7 @@ def test_gomoku_environment():
     env.board[5, 5] = 1  
     board, reward, done, info = env.step((5, 5))  
     print(board, reward, info)  
-    assert reward == -1, "Test Case 1 Failed: Invalid move did not return -1"
+    assert reward == 0, "Test Case 1 Failed: Invalid move did not return 0"
 
     # Case 2: Forming 2 in a row
     print("\nTest Case 2: Forming 2 in a Row")

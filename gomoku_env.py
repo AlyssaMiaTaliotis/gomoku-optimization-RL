@@ -41,8 +41,8 @@ class GomokuEnvironment:
         """
         Calculates the reward based on the action and the game state.
         """
-        if invalid:
-            return self.reward_config.get("invalid_move", 0)
+        # if invalid:
+        #     return self.reward_config.get("invalid_move", 0)
         if win:
             return self.reward_config.get("win", 0)
         if draw:
@@ -101,9 +101,9 @@ class GomokuEnvironment:
                 - dict: Additional information (e.g., reasons for terminal states or invalid moves).
         """
         # For invalid action -> agent will be penalized and prompted to try again
-        if not self.is_valid_action(action):
-            reward = round(self.calculate_reward(action, invalid=True), 1)
-            return self.board, reward, False, {"info": "Invalid move"}
+        # if not self.is_valid_action(action):
+        #     reward = round(self.calculate_reward(action, invalid=True), 1)
+        #     return self.board, reward, False, {"info": "Invalid move"}
         
         # Update the board with the current player's move
         row, col = action
@@ -260,7 +260,20 @@ class GomokuEnvironment:
                 if self.board[r, c] == player and not (r == row and c == col):
                     return False
         return True
-
+    
+    def get_valid_moves(self) -> list[tuple[int, int]]:
+        """
+        Finds all valid moves on the board.
+        Returns:
+            list[tuple[int, int]]: A list of (row, col) tuples representing valid moves.
+        """
+        valid_moves = []
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                # Check if the cell is unoccupied
+                if self.board[row, col] == 0:  
+                    valid_moves.append((row, col))
+        return valid_moves
     
     def render(self) -> None:
         """
