@@ -8,7 +8,6 @@ from gomoku_env import GomokuEnvironment
 from dqn_agent import DQNAgent
 
 
-#Treat agent 1 and agent 2 separately. Don't update rewards for both agents in the episode reward. and have -1 fo rloss of the agent that is not winning
 
 print("Script has started executing.") 
 

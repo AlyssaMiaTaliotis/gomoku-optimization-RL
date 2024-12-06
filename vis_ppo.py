@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
-def visualize_training(log_every=1):
+def visualize_training(log_every=1, save_folder="plots"):
     """
     Visualizes the training metrics for PPO: win rates, losses, and rewards.
 
@@ -65,6 +66,13 @@ def visualize_training(log_every=1):
         plt.legend()
 
     plt.tight_layout()
+    # Save the plot as an image
+    if not os.path.exists(save_folder):  # Create the folder if it doesn't exist
+        os.makedirs(save_folder)  # Added to ensure the folder exists
+    save_path = os.path.join(save_folder, "training_metrics.png")
+    plt.savefig(save_path)  # Save the plot as a .png image
+    print(f"Plot saved to {save_path}")  # Added to confirm where the file was saved
+
     plt.show()
 
 if __name__ == "__main__":

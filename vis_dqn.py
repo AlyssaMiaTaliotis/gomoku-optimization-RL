@@ -122,8 +122,8 @@ def visualize_training(log_every=1, save_folder="plots"):
 
     # Plot Win Rates
     plt.subplot(3, 1, 1)
-    plt.plot(episodes, agent1_win_rates, label='Agent 1 Win Rate', color='blue')
-    plt.plot(episodes, agent2_win_rates, label='Agent 2 Win Rate', color='orange')
+    plt.plot(episodes/10, agent1_win_rates, label='Agent 1 Win Rate', color='blue')
+    plt.plot(episodes/10, agent2_win_rates, label='Agent 2 Win Rate', color='orange')
     plt.xlabel('Episode')
     plt.ylabel('Win Rate')
     plt.title('Win Rates Over Episodes')
