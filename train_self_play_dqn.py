@@ -194,7 +194,7 @@ def train_dqn_self_play(
     gamma: float = 0.95,
     epsilon_start: float = 1.0,
     epsilon_end: float = 0.1,
-    epsilon_decay: float = 0.9999,
+    epsilon_decay: float = 0.9995,
     learning_rate: float = 1e-3,
     update_target_every: int = 10,
     device: str = None,

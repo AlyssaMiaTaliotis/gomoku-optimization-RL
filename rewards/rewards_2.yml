@@ -1,4 +1,4 @@
-win: 1                 # Reward for winning
+win: 2                 # Reward for winning
 draw: 0                # Reward for a draw
 default: 0             # Reward for non-terminal moves
 # invalid_move: -1       # Penalty for invalid moves
