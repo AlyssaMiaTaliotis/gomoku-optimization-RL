@@ -75,22 +75,50 @@ class DQNAgent:
             self.update_target_every=update_target_every
             self.steps_done=0
 
-    def select_action(self, state: np.ndarray) -> int:
+    # def select_action(self, state: np.ndarray) -> int:    # with invalid moves 
+    #     """
+    #     Selects an action using an epsilon-greedy policy without considering valid actions.
+    #     """
+    #     self.steps_done += 1
+    #     if random.random() < self.epsilon:
+    #         # Explore: select a random action from all possible actions
+    #         action = random.randint(0, self.action_size - 1)
+    #     else:
+    #         # Exploit: select the action with highest Q-value
+    #         state_tensor = torch.FloatTensor(state).unsqueeze(0).unsqueeze(0).to(self.device)
+    #         with torch.no_grad():
+    #             q_values = self.policy_net(state_tensor).cpu().numpy().flatten()
+    #         action = np.argmax(q_values)
+    #     return action
+
+    def select_action(self, state: np.ndarray, valid_moves: list) -> int:
         """
-        Selects an action using an epsilon-greedy policy without considering valid actions.
+        Selects an action using an epsilon-greedy policy, considering only valid moves.
+        Args:
+            state (np.ndarray): The current state of the board.
+            valid_moves (list): A list of valid moves (row, col tuples).
+        Returns:
+            int: The action index corresponding to the selected move.
         """
         self.steps_done += 1
         if random.random() < self.epsilon:
-            # Explore: select a random action from all possible actions
-            action = random.randint(0, self.action_size - 1)
+            # Explore: select a random action from valid moves
+            valid_action_indices = [self.coordinates_to_action_index(row, col) for (row, col) in valid_moves]
+            action = random.choice(valid_action_indices)
         else:
-            # Exploit: select the action with highest Q-value
+            # Exploit: select the action with highest Q-value among valid moves
             state_tensor = torch.FloatTensor(state).unsqueeze(0).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 q_values = self.policy_net(state_tensor).cpu().numpy().flatten()
-            action = np.argmax(q_values)
+            # Mask invalid actions by setting their Q-values to a very low number
+            q_values_filtered = np.full_like(q_values, -np.inf)
+            valid_action_indices = [self.coordinates_to_action_index(row, col) for (row, col) in valid_moves]
+            q_values_filtered[valid_action_indices] = q_values[valid_action_indices]
+            # Select the action with the highest Q-value among valid actions
+            action = np.argmax(q_values_filtered)
         return action
-    
+
+
     def store_transition(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, done: bool):
         """
         Stores a transition in the replay buffer.

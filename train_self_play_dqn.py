@@ -1,5 +1,3 @@
-# train_self_play_dqn.py
-
 import argparse
 import numpy as np
 import torch
@@ -261,6 +259,66 @@ def train_dqn_self_play(
         agent2_reward = 0
         step_count = 0
 
+        # while not done:
+        #     current_player = env.current_player
+        #     if current_player == 1:
+        #         agent = agent1
+        #     else:
+        #         agent = agent2
+
+        #     # Agent selects an action from all possible actions
+        #     action_index = agent.select_action(state)
+        #     row, col = agent.action_index_to_coordinates(action_index)
+        #     action = (row, col)
+
+        #     # Execute action
+        #     next_state, reward, done, info = env.step(action)
+
+        #     # Print reward for valid action
+        #     print(f"Episode {episode}, Step {step_count}, Player {current_player}, Action: {action}, Reward: {reward}")
+
+
+        #     # Penalize invalid actions and prompt to try again until valid
+        #     while info.get("info") == "Invalid move":
+        #         # Store the transition with the penalty
+        #         agent.store_transition(state, action_index, reward, next_state, done)
+        #         if current_player == 1:
+        #             agent1_reward += reward
+        #         else:
+        #             agent2_reward += reward
+
+        #         # Print reward for invalid action
+        #         print(f"Episode {episode}, Step {step_count}, Player {current_player}, Invalid Action: {action}, Reward: {reward}")
+
+        #         # Agent selects another action
+        #         action_index = agent.select_action(state)
+        #         row, col = agent.action_index_to_coordinates(action_index)
+        #         action = (row, col)
+
+        #         # Execute the new action
+        #         next_state, reward, done, info = env.step(action)
+
+        #     # Store the valid transition
+        #     agent.store_transition(state, action_index, reward, next_state, done)
+
+        #     # Track rewards for each agent
+        #     if current_player == 1:
+        #         agent1_reward += reward
+        #     else:
+        #         agent2_reward += reward
+
+        #     # Update the agent
+        #     loss = agent.update_model()
+        #     if loss is not None:
+        #         if current_player == 1:
+        #             agent1_losses.append(loss)
+        #         else:
+        #             agent2_losses.append(loss)
+
+        #     # Prepare for next step
+        #     state = next_state
+        #     step_count += 1
+
         while not done:
             current_player = env.current_player
             if current_player == 1:
@@ -268,39 +326,17 @@ def train_dqn_self_play(
             else:
                 agent = agent2
 
-            # Agent selects an action from all possible actions
-            action_index = agent.select_action(state)
+            # Get valid moves from the environment
+            valid_moves = env.get_valid_moves()
+            # Agent selects an action from valid moves
+            action_index = agent.select_action(state, valid_moves)
             row, col = agent.action_index_to_coordinates(action_index)
             action = (row, col)
 
             # Execute action
             next_state, reward, done, info = env.step(action)
 
-            # Print reward for valid action
-            print(f"Episode {episode}, Step {step_count}, Player {current_player}, Action: {action}, Reward: {reward}")
-
-
-            # Penalize invalid actions and prompt to try again until valid
-            while info.get("info") == "Invalid move":
-                # Store the transition with the penalty
-                agent.store_transition(state, action_index, reward, next_state, done)
-                if current_player == 1:
-                    agent1_reward += reward
-                else:
-                    agent2_reward += reward
-
-                # Print reward for invalid action
-                print(f"Episode {episode}, Step {step_count}, Player {current_player}, Invalid Action: {action}, Reward: {reward}")
-
-                # Agent selects another action
-                action_index = agent.select_action(state)
-                row, col = agent.action_index_to_coordinates(action_index)
-                action = (row, col)
-
-                # Execute the new action
-                next_state, reward, done, info = env.step(action)
-
-            # Store the valid transition
+            # Store the transition
             agent.store_transition(state, action_index, reward, next_state, done)
 
             # Track rewards for each agent
@@ -320,6 +356,7 @@ def train_dqn_self_play(
             # Prepare for next step
             state = next_state
             step_count += 1
+
 
             if done:
                 if 'info' in info:

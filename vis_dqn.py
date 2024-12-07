@@ -118,7 +118,7 @@ def visualize_training(log_every=1, save_folder="plots"):
     agent2_win_rates = [wr[1] for wr in win_rates]
 
     # Plotting
-    plt.figure(figsize=(12, 12))
+    plt.figure(figsize=(12, 10))
 
     # Plot Win Rates
     plt.subplot(3, 1, 1)
