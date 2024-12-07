@@ -10,7 +10,7 @@ from utils import smartest_rule_based_move
 print("Script has started executing.") 
 
 
-def train_dqn_self_play(
+def train_dqn_rule_based(
     num_episodes: int = 1000,
     board_size: int = 15,
     memory_size: int = 10000,
@@ -24,11 +24,11 @@ def train_dqn_self_play(
     device: str = None,
     save_model_every: int = 100,
     model_save_path: str = "dqn_gomoku.pth",
-    log_every: int = 20,
+    log_every: int = 10,
     rewards_type: str = "rewards_default",
 ):
     """
-    Trains two DQN agents against rule based agent in the Gomoku environment.
+    Trains a DQN agent against rule based agent in the Gomoku environment.
     """
 
     config_path = f"rewards/{rewards_type}.yml"
@@ -122,6 +122,7 @@ def train_dqn_self_play(
             print(f"Episode {episode}, Agent1 Reward: {agent1_reward}, "
                   f"Agent1 Win Rate: {agent1_win_rate:.2f}, Rule-Based Win Rate: {rule_based_win_rate:.2f}, "
                   f"Agent1 Avg Loss: {avg_agent1_loss:.4f}, Epsilon: {agent1.epsilon:.4f}")
+            env.render()
     
     folder = "rule_based_dqn"
     # Save the plot as an image
@@ -150,7 +151,7 @@ if __name__ == "__main__":
 
     # config_path = f"rewards/{args.config_name}.yml"
 
-    train_dqn_self_play(
+    train_dqn_rule_based(
         num_episodes=args.num_episodes,
         board_size=args.board_size,
         device=args.device,
