@@ -190,17 +190,17 @@ def train_dqn_self_play(
     num_episodes: int = 1000,
     board_size: int = 15,
     memory_size: int = 10000,
-    batch_size: int = 64,
+    batch_size: int = 128,
     gamma: float = 0.95,
     epsilon_start: float = 1.0,
     epsilon_end: float = 0.1,
     epsilon_decay: float = 0.9999,
     learning_rate: float = 1e-3,
-    update_target_every: int = 5,
+    update_target_every: int = 10,
     device: str = None,
     save_model_every: int = 100,
     model_save_path: str = "dqn_gomoku.pth",
-    log_every: int = 1,
+    log_every: int = 20,
     config_path: str = "rewards/rewards_default.yml",
 ):
     """
@@ -360,7 +360,7 @@ def train_dqn_self_play(
 
             if done:
                 if 'info' in info:
-                    print(f"Episode {episode}, {info['info']}")
+                    #print(f"Episode {episode}, {info['info']}")
                     if f"Player 1 wins" in info["info"]:
                         agent1_wins += 1
                         agent2_reward -= 1  # Penalize Agent 2
@@ -379,24 +379,24 @@ def train_dqn_self_play(
         # Log metrics
         agent1_rewards_list.append(agent1_reward)
         agent2_rewards_list.append(agent2_reward)
+        avg_agent1_loss = np.mean(agent1_losses[-step_count:]) if agent1_losses else 0
+        avg_agent2_loss = np.mean(agent2_losses[-step_count:]) if agent2_losses else 0
+        agent1_avg_losses.append(avg_agent1_loss)
+        agent2_avg_losses.append(avg_agent2_loss)
+
+        total_games = agent1_wins + agent2_wins + draws
+        agent1_win_rate = agent1_wins / total_games if total_games > 0 else 0
+        agent2_win_rate = agent2_wins / total_games if total_games > 0 else 0
+        win_rates.append((agent1_win_rate, agent2_win_rate))
 
         if episode % log_every == 0:
-            avg_agent1_loss = np.mean(agent1_losses[-step_count:]) if agent1_losses else 0
-            avg_agent2_loss = np.mean(agent2_losses[-step_count:]) if agent2_losses else 0
-            agent1_avg_losses.append(avg_agent1_loss)
-            agent2_avg_losses.append(avg_agent2_loss)
-
-            total_games = agent1_wins + agent2_wins + draws
-            agent1_win_rate = agent1_wins / total_games if total_games > 0 else 0
-            agent2_win_rate = agent2_wins / total_games if total_games > 0 else 0
-            win_rates.append((agent1_win_rate, agent2_win_rate))
 
             # Print progress
             print(f"Episode {episode}, Agent1 Reward: {agent1_reward}, Agent2 Reward: {agent2_reward}, "
                   f"Agent1 Win Rate: {agent1_win_rate:.2f}, Agent2 Win Rate: {agent2_win_rate:.2f}, "
                   f"Agent1 Avg Loss: {avg_agent1_loss:.4f}, Agent2 Avg Loss: {avg_agent2_loss:.4f}, "
                   f"Epsilon: {agent1.epsilon:.4f}")
-            env.render()
+            #env.render()
 
     # Save the final models
     agent1.save_model(f"agent1_{model_save_path}")
