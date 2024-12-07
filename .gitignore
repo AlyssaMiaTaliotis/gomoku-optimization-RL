@@ -6,3 +6,6 @@
 
 *.pth
 *.npy
+
+/rule_based_dqn
+

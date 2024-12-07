@@ -8,6 +8,8 @@ tensorflow = "*"
 numpy = "*"
 pyyaml = "*"
 colorama = "*"
+torch="*"
+matplotlib="*"
 
 [dev-packages]
 
