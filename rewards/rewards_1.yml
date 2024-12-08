@@ -1,6 +1,6 @@
-win: 1                 # Reward for winning
-draw: 0                # Reward for a draw
-default: 0             # Reward for non-terminal moves
+win: 1.0                 # Reward for winning
+draw: 0.0                # Reward for a draw
+default: 0.0             # Reward for non-terminal moves
 # invalid_move: -1       # Penalty for invalid moves
 
 intermediate_rewards:
