@@ -10,10 +10,10 @@ def visualize_training(save_folder="plots"):
         save_folder (str): The folder where the plot image will be saved.
     """
     try:
-        win_rates = np.load("win_rates_ppo.npy")
-        episode_rewards = np.load("episode_rewards_ppo.npy")
-        policy_losses = np.load("policy_losses_ppo.npy")
-        value_losses = np.load("value_losses_ppo.npy")
+        win_rates = np.load("self_play_ppo/win_rates.npy")
+        episode_rewards = np.load("self_play_ppo/episode_rewards.npy")
+        agent1_losses = np.load("self_play_ppo/agent1_losses.npy")
+        agent2_losses = np.load("self_play_ppo/agent2_losses.npy")
     except FileNotFoundError as e:
         print(f"File not found: {e}")
         return
@@ -46,13 +46,13 @@ def visualize_training(save_folder="plots"):
     plt.title("Total Rewards Over Episodes")
     plt.legend()
 
-    # Losses
+    # Agent Losses
     plt.subplot(3, 1, 3)
-    plt.plot(policy_losses, label="Policy Loss", color="red")
-    plt.plot(value_losses, label="Value Loss", color="green")
-    plt.xlabel("Training Steps")
+    plt.plot(episodes, agent1_losses, label="Agent 1 Loss", color="blue")
+    plt.plot(episodes, agent2_losses, label="Agent 2 Loss", color="orange")
+    plt.xlabel("Episode")
     plt.ylabel("Loss")
-    plt.title("Losses Over Time")
+    plt.title("Average Loss Per Episode")
     plt.legend()
 
     plt.tight_layout()

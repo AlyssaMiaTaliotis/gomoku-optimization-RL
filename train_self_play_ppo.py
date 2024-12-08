@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import torch
+import os
 from gomoku_env import GomokuEnvironment
 from ppo_agent import PPOAgent
 
@@ -10,9 +11,8 @@ def train_ppo_self_play(
     num_episodes: int = 100, 
     board_size: int = 15, 
     gamma: float = 0.99,
-    epsilon: float = 0.2,
+    epsilon: float = 0.1,
     lr: float = 1e-3,
-    rollout_steps: int = 64,
     epochs: int = 2,
     batch_size: int = 64,
     device: str = None,
@@ -47,7 +47,7 @@ def train_ppo_self_play(
     # Metrics for tracking
     agent1_wins, agent2_wins, draws = 0, 0, 0
     win_rates, episode_rewards = [], []
-    policy_losses, value_losses = [], []
+    agent1_losses, agent2_losses = [], []  # Track losses for Agent 1 and Agent 2
 
     for episode in range(1, num_episodes + 1):
         # Reset the environment for a new game
@@ -105,40 +105,65 @@ def train_ppo_self_play(
         win_rates.append((agent1_win_rate, agent2_win_rate))
         episode_rewards.append((agent1_reward, agent2_reward))
 
-        # Compute advantages and returns
-        values = [agent1.value_net(torch.FloatTensor(s).unsqueeze(0).unsqueeze(0).to(device)).item() for s in states]
-        advantages, returns = agent1.compute_advantages(rewards, values, dones)
+        # Compute advantages and returns for both agents
+        values_agent1 = [agent1.value_net(torch.FloatTensor(s).unsqueeze(0).unsqueeze(0).to(device)).item() for s in states]
+        advantages_agent1, returns_agent1 = agent1.compute_advantages(rewards, values_agent1, dones)
+        values_agent2 = [agent2.value_net(torch.FloatTensor(s).unsqueeze(0).unsqueeze(0).to(device)).item() for s in states]
+        advantages_agent2, returns_agent2 = agent2.compute_advantages(rewards, values_agent2, dones)
 
-        # Perform multiple epochs of training for each collected batch of episode data
+        # Track losses for each agent
+        episode_policy_loss_agent1, episode_value_loss_agent1 = 0, 0
+        episode_policy_loss_agent2, episode_value_loss_agent2 = 0, 0
+
+        # Perform multiple epochs of training for each agent
         for epoch in range(epochs):
             for start in range(0, len(states), batch_size):
                 end = start + batch_size
 
-                # Extract data for the current batch
+                # Extract data for Agent 1
                 batch_states = torch.FloatTensor(np.array(states[start:end])).unsqueeze(1).to(device)
                 batch_actions = torch.LongTensor(actions[start:end]).to(device)
                 batch_action_probs = torch.FloatTensor(action_probs[start:end]).to(device)
-                batch_returns = returns[start:end]
-                batch_advantages = advantages[start:end]
+                batch_returns_agent1 = returns_agent1[start:end]
+                batch_advantages_agent1 = advantages_agent1[start:end]
 
-                # Perform a single PPO update
-                policy_loss, value_loss = agent1.update(batch_states, batch_actions, batch_action_probs, batch_returns, batch_advantages)
+                # Update Agent 1
+                policy_loss_agent1, value_loss_agent1 = agent1.update(batch_states, batch_actions, batch_action_probs, batch_returns_agent1, batch_advantages_agent1)
+                episode_policy_loss_agent1 += policy_loss_agent1
+                episode_value_loss_agent1 += value_loss_agent1
 
-                # Track losses
-                policy_losses.append(policy_loss)
-                value_losses.append(value_loss)
+                # Extract data for Agent 2 (same batch)
+                batch_returns_agent2 = returns_agent2[start:end]
+                batch_advantages_agent2 = advantages_agent2[start:end]
+
+                # Update Agent 2
+                policy_loss_agent2, value_loss_agent2 = agent2.update(batch_states, batch_actions, batch_action_probs, batch_returns_agent2, batch_advantages_agent2)
+                episode_policy_loss_agent2 += policy_loss_agent2
+                episode_value_loss_agent2 += value_loss_agent2
+
+        # Log average losses for the episode
+        avg_agent1_loss = (episode_policy_loss_agent1 + episode_value_loss_agent1) / (epochs * len(states))
+        avg_agent2_loss = (episode_policy_loss_agent2 + episode_value_loss_agent2) / (epochs * len(states))
+        agent1_losses.append(avg_agent1_loss)
+        agent2_losses.append(avg_agent2_loss)
 
         # Log progress every 10 episodes
         if episode % 10 == 0:
             print(f"Episode {episode}: Agent1 Reward: {agent1_reward}, Agent2 Reward: {agent2_reward}, "
-                  f"Win Rates -> Agent1: {agent1_win_rate:.2f}, Agent2: {agent2_win_rate:.2f}")
+                  f"Win Rates -> Agent1: {agent1_win_rate:.2f}, Agent2: {agent2_win_rate:.2f}, "
+                  f"Agent1 Loss: {avg_agent1_loss:.4f}, Agent2 Loss: {avg_agent2_loss:.4f}")
 
     # Save metrics
-    np.save("win_rates_ppo.npy", win_rates)
-    np.save("episode_rewards_ppo.npy", episode_rewards)
-    np.save("policy_losses_ppo.npy", policy_losses)
-    np.save("value_losses_ppo.npy", value_losses)
+    folder = "self_play_ppo"
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    np.save(f"{folder}/win_rates.npy", win_rates)
+    np.save(f"{folder}/episode_rewards.npy", episode_rewards)
+    np.save(f"{folder}/agent1_losses.npy", agent1_losses)
+    np.save(f"{folder}/agent2_losses.npy", agent2_losses)
     print("Training completed and metrics saved!")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train PPO Agents via Self-Play in Gomoku")
@@ -166,5 +191,3 @@ if __name__ == "__main__":
         device=args.device,
         config_path=config_path,
     )
-
-

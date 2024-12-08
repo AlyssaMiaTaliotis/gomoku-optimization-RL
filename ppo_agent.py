@@ -208,3 +208,33 @@ class PPOAgent:
         self.value_optimizer.step()
 
         return policy_loss.item(), value_loss.item()
+    
+
+
+    def save_model(self, filepath: str):
+        """
+        Saves the policy and value networks to a file.
+        Args:
+            filepath (str): The file path (without extension) to save the model.
+        """
+        save_data = {
+            "policy_net_state_dict": self.policy_net.state_dict(),
+            "value_net_state_dict": self.value_net.state_dict()
+        }
+        torch.save(save_data, filepath)
+        print(f"Model saved to {filepath}")
+
+    def load_model(self, filepath: str):
+        """
+        Loads the policy and value networks from a file.
+        Args:
+            filepath (str): The file path (without extension) from which to load the model.
+        """
+        checkpoint = torch.load(filepath, map_location=self.device)
+        self.policy_net.load_state_dict(checkpoint["policy_net_state_dict"])
+        self.value_net.load_state_dict(checkpoint["value_net_state_dict"])
+        print(f"Model loaded from {filepath}")
+
+        
+
+
