@@ -1,0 +1,6 @@
+tensorflow
+numpy
+pyyaml
+colorama
+torch
+matplotlib
