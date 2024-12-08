@@ -8,4 +8,5 @@
 *.npy
 
 /rule_based_dqn
+/gomoku
 
