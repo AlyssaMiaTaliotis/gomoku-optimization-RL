@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import random
 
 
 # Policy Network 
@@ -82,34 +83,74 @@ class PPOAgent:
 
     # selects an action based on the policy network's output probabilities 
     # this action is chosen stochastically, which allows for exploration
-    def select_action(self, state: np.ndarray):
-            """
-            Selects an action based on the current policy (stochastic).
-            Args:
-                state (np.ndarray): The current state of the board.
-            Returns:
-                action (int): The index of the selected action.
-                action_prob (float): The probability of the selected action.
-            """
+    # def select_action(self, state: np.ndarray):
+    #         """
+    #         Selects an action based on the current policy (stochastic).
+    #         Args:
+    #             state (np.ndarray): The current state of the board.
+    #         Returns:
+    #             action (int): The index of the selected action.
+    #             action_prob (float): The probability of the selected action.
+    #         """
 
-            # convert the state (2D board) into a tensor 
-            # - add a batch dimension (unsqueeze(0)) and a channel dimension (unsqueeze(1)) for CNN
-            state_tensor = torch.FloatTensor(state).unsqueeze(0).unsqueeze(0).to(self.device)
+    #         # convert the state (2D board) into a tensor 
+    #         # - add a batch dimension (unsqueeze(0)) and a channel dimension (unsqueeze(1)) for CNN
+    #         state_tensor = torch.FloatTensor(state).unsqueeze(0).unsqueeze(0).to(self.device)
 
-            # pass the state through the policy network to get logits for all actions
-            action_logits = self.policy_net(state_tensor)
+    #         # pass the state through the policy network to get logits for all actions
+    #         action_logits = self.policy_net(state_tensor)
 
-            # apply softmax to convert logits into probabilities 
-            action_probs = torch.softmax(action_logits, dim=1)
+    #         # apply softmax to convert logits into probabilities 
+    #         action_probs = torch.softmax(action_logits, dim=1)
 
-            # create a categorical distribution over actions using the probabilities 
-            action_distribution = torch.distributions.Categorical(action_probs)
+    #         # create a categorical distribution over actions using the probabilities 
+    #         action_distribution = torch.distributions.Categorical(action_probs)
 
-            # sample an action from the distribution (stochastic action selection)
-            action = action_distribution.sample()
+    #         # sample an action from the distribution (stochastic action selection)
+    #         action = action_distribution.sample()
             
-            # return the selected action and its probability 
-            return action.item(), action_probs[0, action.item()].item()
+    #         # return the selected action and its probability 
+    #         return action.item(), action_probs[0, action.item()].item()
+
+    def select_action(self, state: np.ndarray, exploit_only: bool = False):
+        """
+        Selects an action based on the policy network's output.
+        Args:
+            state (np.ndarray): The current state of the board.
+            exploit_only (bool): If True, the agent will select the action with the highest probability (greedy).
+        Returns:
+            action (int): The index of the selected action.
+            action_prob (float): The probability of the selected action.
+        """
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).unsqueeze(0).to(self.device)
+        action_logits = self.policy_net(state_tensor)
+        action_probs = torch.softmax(action_logits, dim=1).cpu().detach().numpy().flatten()
+
+        # Get valid moves
+        valid_moves = [(r, c) for r in range(self.board_size) for c in range(self.board_size) if state[r, c] == 0]
+        valid_action_indices = [r * self.board_size + c for r, c in valid_moves]
+
+        # Mask invalid actions
+        masked_action_probs = np.zeros_like(action_probs)
+        masked_action_probs[valid_action_indices] = action_probs[valid_action_indices]
+
+        if exploit_only:
+            # Select action with highest probability
+            action = np.argmax(masked_action_probs)
+            action_prob = masked_action_probs[action]
+        else:
+            # Normalize probabilities
+            total_prob = masked_action_probs.sum()
+            if total_prob == 0:
+                # All probabilities are zero, choose randomly among valid moves
+                action = random.choice(valid_action_indices)
+                action_prob = 1.0 / len(valid_action_indices)
+            else:
+                masked_action_probs /= total_prob
+                action = np.random.choice(len(masked_action_probs), p=masked_action_probs)
+                action_prob = masked_action_probs[action]
+        return action, action_prob
+
     
     # computes the advantages and returns for each state-action pair
     # advantages represent how much better an action is compared to the baseline (value function)

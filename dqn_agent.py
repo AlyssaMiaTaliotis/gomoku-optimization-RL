@@ -91,7 +91,7 @@ class DQNAgent:
     #         action = np.argmax(q_values)
     #     return action
 
-    def select_action(self, state: np.ndarray, valid_moves: list) -> int:
+    def select_action(self, state: np.ndarray, valid_moves: list, exploit_only: bool = False) -> int:
         """
         Selects an action using an epsilon-greedy policy, considering only valid moves.
         Args:
@@ -101,7 +101,11 @@ class DQNAgent:
             int: The action index corresponding to the selected move.
         """
         self.steps_done += 1
-        if random.random() < self.epsilon:
+        if exploit_only:
+            epsilon = 0.0  # Force exploitation
+        else:
+            epsilon = self.epsilon
+        if random.random() < epsilon:
             # Explore: select a random action from valid moves
             valid_action_indices = [self.coordinates_to_action_index(row, col) for (row, col) in valid_moves]
             action = random.choice(valid_action_indices)
@@ -210,23 +214,19 @@ class DQNAgent:
         return row * self.board_size + col
     
     def save_model(self, filepath: str):
-        """
-        Saves the policy network to a file.
-        Args:
-            filepath (str): The file path to save the model.
-        """
-
-        torch.save(self.policy_net.state_dict(), filepath)
+        save_data = {
+            "state_dict": self.policy_net.state_dict(),
+            "board_size": self.board_size,
+            # Add other parameters when needed
+        }
+        torch.save(save_data, filepath)
 
     def load_model(self, filepath: str):
-        """
-        Loads the policy network from a file.
-        Args:
-            filepath (str): The file path from which to load the model.
-        """
-
-        self.policy_net.load_state_dict(torch.load(filepath, map_location=self.device))
-        self.policy_net.eval()
+        checkpoint = torch.load(filepath, map_location=self.device)
+        self.board_size = checkpoint["board_size"]
+        # Reinitialize the network with the correct board_size
+        self.policy_net = DQN(self.board_size).to(self.device)
+        self.policy_net.load_state_dict(checkpoint["state_dict"])
 
 
 
