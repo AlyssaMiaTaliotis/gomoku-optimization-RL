@@ -31,7 +31,7 @@ class DQN(nn.Module):
 
 
 class DQNAgent:
-    def __init__(self, board_size: int=15, memory_size: int=10000, batch_size: int=64, gamma: float=0.99, epsilon_start: float=1.0, epsilon_end: float=0.1, epsilon_decay: float=0.995, learning_rate: float=1e-3, update_target_every: int=10, device: str="cpu"):
+    def __init__(self, board_size: int=8, memory_size: int=10000, batch_size: int=512, gamma: float=0.99, epsilon_start: float=1.0, epsilon_end: float=0.0, epsilon_decay: float=0.9995, learning_rate: float=1e-3, update_target_every: int=50, device: str="cpu"):
             """
         Initializes the DQN Agent.
         Args:

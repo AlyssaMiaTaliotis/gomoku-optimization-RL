@@ -3,11 +3,11 @@ import yaml
 from colorama import Fore, Style
 
 class GomokuEnvironment:
-    def __init__(self, board_size: int = 15, config_path: str = "rewards/rewards_default.yml"):
+    def __init__(self, board_size: int = 8, config_path: str = "rewards/rewards_default.yml"):
         """
         Initializes the Gomoku environment.
         Args:
-            board_size (int): The size of the board (default is 15x15).
+            board_size (int): The size of the board (default is 8x8).
             config_path (str): Path to the reward configuration YAML file.
         Returns: None
         """

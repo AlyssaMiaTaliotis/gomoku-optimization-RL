@@ -8,13 +8,13 @@ from ppo_agent import PPOAgent
 print("Script has started executing.")
 
 def train_ppo_self_play(
-    num_episodes: int = 100, 
-    board_size: int = 15, 
+    num_episodes: int = 1000, 
+    board_size: int = 8, 
     gamma: float = 0.99,
     epsilon: float = 0.1,
     lr: float = 1e-3,
     epochs: int = 2,
-    batch_size: int = 64,
+    batch_size: int = 512,
     device: str = None,
     config_path: str = "rewards/rewards_2.yml",
 ):
@@ -167,13 +167,13 @@ def train_ppo_self_play(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train PPO Agents via Self-Play in Gomoku")
-    parser.add_argument("--num_episodes", type=int, default=100, help="Number of training episodes")
-    parser.add_argument("--board_size", type=int, default=15, help="Size of the Gomoku board")
+    parser.add_argument("--num_episodes", type=int, default=1000, help="Number of training episodes")
+    parser.add_argument("--board_size", type=int, default=8, help="Size of the Gomoku board")
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor for future rewards")
-    parser.add_argument("--epsilon", type=float, default=0.2, help="Clipping parameter for PPO")
+    parser.add_argument("--epsilon", type=float, default=0.1, help="Clipping parameter for PPO")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate for optimizers")
     parser.add_argument("--epochs", type=int, default=2, help="Number of epochs per PPO update")
-    parser.add_argument("--batch_size", type=int, default=64, help="Batch size for training")
+    parser.add_argument("--batch_size", type=int, default=512, help="Batch size for training")
     parser.add_argument("--device", type=str, default=None, help="Device to use for computations ('cpu' or 'cuda')")
     parser.add_argument("--config_name", type=str, default="rewards_2", help="Name of the reward configuration file (without .yml extension)")
 

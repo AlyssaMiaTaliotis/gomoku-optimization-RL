@@ -4,12 +4,11 @@ import torch
 import os
 from gomoku_env import GomokuEnvironment
 from ppo_agent import PPOAgent
-from utils import smartest_rule_based_move
 
 print("Script has started executing.")
 
-def train_rule_based_ppo(
-    num_episodes: int = 100,
+def train_ppo_random(
+    num_episodes: int = 1000,
     board_size: int = 8,
     gamma: float = 0.99,
     epsilon: float = 0.1,
@@ -22,21 +21,9 @@ def train_rule_based_ppo(
     log_every: int = 10,
 ):
     """
-    Trains a PPO agent against a rule-based agent in the Gomoku environment.
-
-    Args:
-        num_episodes (int): Number of training episodes.
-        board_size (int): Size of the Gomoku board.
-        gamma (float): Discount factor for future rewards.
-        epsilon (float): Clipping parameter for PPO.
-        lr (float): Learning rate for optimizers.
-        epochs (int): Number of epochs to optimize policy and value networks per update.
-        batch_size (int): Mini-batch size for updates.
-        device (str): Device to run computations ('cpu' or 'cuda').
-        rewards_type (str): Name of the reward configuration YAML file (without extension).
-        model_save_path (str): Path to save the trained PPO model.
-        log_every (int): Number of episodes after which to log progress.
+    Trains a PPO agent against a random agent in the Gomoku environment.
     """
+
     config_path = f"rewards/{rewards_type}.yml"
 
     # Auto-detect device if not specified
@@ -51,7 +38,7 @@ def train_rule_based_ppo(
     agent1 = PPOAgent(board_size=board_size, gamma=gamma, epsilon=epsilon, lr=lr, device=device)
 
     # Metrics for tracking performance
-    agent1_wins, rule_based_wins, draws = 0, 0, 0
+    agent1_wins, random_agent_wins, draws = 0, 0, 0
     win_rates = []
     agent1_rewards_list = []
     policy_losses_per_episode, value_losses_per_episode = [], []
@@ -59,7 +46,7 @@ def train_rule_based_ppo(
     for episode in range(1, num_episodes + 1):
         state = env.reset()
         done = False
-        agent1_reward, rule_based_reward = 0, 0
+        agent1_reward = 0
         step_count = 0
 
         # Track episode data
@@ -73,41 +60,43 @@ def train_rule_based_ppo(
                 row, col = divmod(action, board_size)
                 action_coordinates = (row, col)
             else:
-                # Rule-based Agent's turn
-                action_coordinates = smartest_rule_based_move(env)
+                # Random agent's turn
+                valid_moves = env.get_valid_moves()
+                action_coordinates = random.choice(valid_moves)
 
             # Execute action
             next_state, reward, done, info = env.step(action_coordinates)
 
-            # Track rewards and transitions for PPO agent
             if current_player == 1:
+                # Track rewards and transitions for PPO agent
                 agent1_reward += reward
-                # Store the transition data for training PPO agent
                 states.append(state)
                 actions.append(action)
                 rewards.append(reward)
                 dones.append(done)
                 action_probs.append(action_prob)
-            else:
-                rule_based_reward += reward
 
-            # Update state and step count
+            # Prepare for next step
             state = next_state
             step_count += 1
 
-        # Update win rates
-        if "Player 1 wins" in info.get("info", ""):
-            agent1_wins += 1
-        elif "Player 2 wins" in info.get("info", ""):
-            rule_based_wins += 1
-            agent1_reward -= 1  # Penalize the PPO agent
-        else:
-            draws += 1
+            if done:
+                if 'info' in info:
+                    # Update win counts based on the result
+                    if "Player 1 wins" in info.get("info", ""):
+                        agent1_wins += 1
+                    elif "Player 2 wins" in info.get("info", ""):
+                        random_agent_wins += 1
+                        agent1_reward -= 1  # Penalize the PPO agent
+                    else:
+                        draws += 1
+                break  # End the game
 
-        total_games = agent1_wins + rule_based_wins + draws
+        # Update win rates
+        total_games = agent1_wins + random_agent_wins + draws
         agent1_win_rate = agent1_wins / total_games if total_games > 0 else 0
-        rule_based_win_rate = rule_based_wins / total_games if total_games > 0 else 0
-        win_rates.append((agent1_win_rate, rule_based_win_rate))
+        random_agent_win_rate = random_agent_wins / total_games if total_games > 0 else 0
+        win_rates.append((agent1_win_rate, random_agent_win_rate))
         agent1_rewards_list.append(round(agent1_reward, 1))
 
         # Compute advantages and returns for PPO agent
@@ -142,14 +131,15 @@ def train_rule_based_ppo(
         policy_losses_per_episode.append(avg_policy_loss)
         value_losses_per_episode.append(avg_value_loss)
 
-        # Log progress every 10 episodes
+        # Log progress every 'log_every' episodes
         if episode % log_every == 0:
-            print(f"Episode {episode}: Agent1 Reward: {agent1_reward}, Rule-Based Reward: {rule_based_reward}, "
-                  f"Win Rates -> PPO: {agent1_win_rate:.2f}, Rule-Based: {rule_based_win_rate:.2f}, "
+            print(f"Episode {episode}: Agent1 Reward: {agent1_reward}, "
+                  f"Win Rates -> PPO Agent: {agent1_win_rate:.2f}, Random Agent: {random_agent_win_rate:.2f}, "
                   f"Policy Loss: {avg_policy_loss:.4f}, Value Loss: {avg_value_loss:.4f}")
+            # env.render()  # Uncomment to visualize the board
 
     # Save metrics
-    folder = f"rule_based_ppo/{rewards_type}"
+    folder = f"random_ppo/{rewards_type}"
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -162,9 +152,9 @@ def train_rule_based_ppo(
     agent1.save_model(f"{folder}/{model_save_path}")
     print("Training completed and metrics saved!")
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train PPO Agent against Rule-Based Agent in Gomoku")
+    import random  # Add this import statement
+    parser = argparse.ArgumentParser(description="Train PPO Agent against Random Agent in Gomoku")
     parser.add_argument("--num_episodes", type=int, default=1000, help="Number of training episodes")
     parser.add_argument("--board_size", type=int, default=8, help="Size of the Gomoku board")
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor for future rewards")
@@ -177,7 +167,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_save_path", type=str, default="ppo_gomoku.pth", help="Path to save the model")
     args = parser.parse_args()
 
-    train_rule_based_ppo(
+    train_ppo_random(
         num_episodes=args.num_episodes,
         board_size=args.board_size,
         gamma=args.gamma,
