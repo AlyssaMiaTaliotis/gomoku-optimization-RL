@@ -8,13 +8,13 @@ from ppo_agent import PPOAgent
 print("Script has started executing.")
 
 def train_ppo_self_play(
-    num_episodes: int = 1000, 
-    board_size: int = 8, 
+    num_episodes: int = 1000,
+    board_size: int = 8,
     gamma: float = 0.99,
-    epsilon: float = 0.1,
-    lr: float = 1e-3,
-    epochs: int = 2,
-    batch_size: int = 512,
+    epsilon: float = 0.05,
+    lr: float = 1e-5,
+    epochs: int = 4,
+    batch_size: int = 128,
     device: str = None,
     config_path: str = "rewards/rewards_2.yml",
 ):
@@ -27,7 +27,6 @@ def train_ppo_self_play(
         gamma (float): Discount factor for future rewards.
         epsilon (float): Clipping parameter for PPO.
         lr (float): Learning rate for optimizers.
-        rollout_steps (int): Number of steps to collect before updating.
         epochs (int): Number of epochs to optimize policy and value networks per update.
         batch_size (int): Mini-batch size for updates.
         device (str): Device to run computations on ('cpu' or 'cuda').
@@ -56,34 +55,42 @@ def train_ppo_self_play(
         agent1_reward, agent2_reward = 0, 0
         step_count = 0
 
-        # Track episode data
-        states, actions, rewards, dones, action_probs = [], [], [], [], []
+        # Track episode data separately for each agent
+        states_agent1, actions_agent1, rewards_agent1, dones_agent1, action_probs_agent1 = [], [], [], [], []
+        states_agent2, actions_agent2, rewards_agent2, dones_agent2, action_probs_agent2 = [], [], [], [], []
 
         while not done:
             # Determine which agent is playing
             current_player = env.current_player
             agent = agent1 if current_player == 1 else agent2
 
+            # Get valid moves and valid action indices
+            valid_moves = env.get_valid_moves()
+            valid_action_indices = [r * board_size + c for r, c in valid_moves]
+
             # Select action based on the policy
-            action, action_prob = agent.select_action(state)
+            action, action_prob = agent.select_action(state, valid_action_indices)
             row, col = divmod(action, board_size)
             action_coordinates = (row, col)
 
             # Execute action
             next_state, reward, done, info = env.step(action_coordinates)
 
-            # Track rewards separately for each agent
+            # Track rewards and transitions separately for each agent
             if current_player == 1:
                 agent1_reward += reward
+                states_agent1.append(state)
+                actions_agent1.append(action)
+                rewards_agent1.append(reward)
+                dones_agent1.append(done)
+                action_probs_agent1.append(action_prob)
             else:
                 agent2_reward += reward
-
-            # Store the transition data for training
-            states.append(state)
-            actions.append(action)
-            rewards.append(reward)
-            dones.append(done)
-            action_probs.append(action_prob)
+                states_agent2.append(state)
+                actions_agent2.append(action)
+                rewards_agent2.append(reward)
+                dones_agent2.append(done)
+                action_probs_agent2.append(action_prob)
 
             # Update state and step count
             state = next_state
@@ -106,52 +113,67 @@ def train_ppo_self_play(
         episode_rewards.append((agent1_reward, agent2_reward))
 
         # Compute advantages and returns for both agents
-        values_agent1 = [agent1.value_net(torch.FloatTensor(s).unsqueeze(0).unsqueeze(0).to(device)).item() for s in states]
-        advantages_agent1, returns_agent1 = agent1.compute_advantages(rewards, values_agent1, dones)
-        values_agent2 = [agent2.value_net(torch.FloatTensor(s).unsqueeze(0).unsqueeze(0).to(device)).item() for s in states]
-        advantages_agent2, returns_agent2 = agent2.compute_advantages(rewards, values_agent2, dones)
+        # Agent 1
+        if states_agent1:
+            values_agent1 = [agent1.value_net(torch.FloatTensor(s).unsqueeze(0).unsqueeze(0).to(device)).item() for s in states_agent1]
+            advantages_agent1, returns_agent1 = agent1.compute_advantages(rewards_agent1, values_agent1, dones_agent1)
 
-        # Track losses for each agent
-        episode_policy_loss_agent1, episode_value_loss_agent1 = 0, 0
-        episode_policy_loss_agent2, episode_value_loss_agent2 = 0, 0
+            # Perform multiple epochs of training for Agent 1
+            episode_policy_loss_agent1, episode_value_loss_agent1 = 0, 0
+            for epoch in range(epochs):
+                for start in range(0, len(states_agent1), batch_size):
+                    end = start + batch_size
 
-        # Perform multiple epochs of training for each agent
-        for epoch in range(epochs):
-            for start in range(0, len(states), batch_size):
-                end = start + batch_size
+                    batch_states = torch.FloatTensor(np.array(states_agent1[start:end])).unsqueeze(1).to(device)
+                    batch_actions = torch.LongTensor(actions_agent1[start:end]).to(device)
+                    batch_action_probs = torch.FloatTensor(action_probs_agent1[start:end]).to(device)
+                    batch_returns = returns_agent1[start:end]
+                    batch_advantages = advantages_agent1[start:end]
 
-                # Extract data for Agent 1
-                batch_states = torch.FloatTensor(np.array(states[start:end])).unsqueeze(1).to(device)
-                batch_actions = torch.LongTensor(actions[start:end]).to(device)
-                batch_action_probs = torch.FloatTensor(action_probs[start:end]).to(device)
-                batch_returns_agent1 = returns_agent1[start:end]
-                batch_advantages_agent1 = advantages_agent1[start:end]
+                    # Update Agent 1
+                    policy_loss_agent1, value_loss_agent1 = agent1.update(batch_states, batch_actions, batch_action_probs, batch_returns, batch_advantages)
+                    episode_policy_loss_agent1 += policy_loss_agent1
+                    episode_value_loss_agent1 += value_loss_agent1
 
-                # Update Agent 1
-                policy_loss_agent1, value_loss_agent1 = agent1.update(batch_states, batch_actions, batch_action_probs, batch_returns_agent1, batch_advantages_agent1)
-                episode_policy_loss_agent1 += policy_loss_agent1
-                episode_value_loss_agent1 += value_loss_agent1
+            # Log average losses for Agent 1
+            avg_agent1_loss = (episode_policy_loss_agent1 + episode_value_loss_agent1) / (epochs * max(len(states_agent1), 1))
+            agent1_losses.append(avg_agent1_loss)
+        else:
+            agent1_losses.append(0)
 
-                # Extract data for Agent 2 (same batch)
-                batch_returns_agent2 = returns_agent2[start:end]
-                batch_advantages_agent2 = advantages_agent2[start:end]
+        # Agent 2
+        if states_agent2:
+            values_agent2 = [agent2.value_net(torch.FloatTensor(s).unsqueeze(0).unsqueeze(0).to(device)).item() for s in states_agent2]
+            advantages_agent2, returns_agent2 = agent2.compute_advantages(rewards_agent2, values_agent2, dones_agent2)
 
-                # Update Agent 2
-                policy_loss_agent2, value_loss_agent2 = agent2.update(batch_states, batch_actions, batch_action_probs, batch_returns_agent2, batch_advantages_agent2)
-                episode_policy_loss_agent2 += policy_loss_agent2
-                episode_value_loss_agent2 += value_loss_agent2
+            # Perform multiple epochs of training for Agent 2
+            episode_policy_loss_agent2, episode_value_loss_agent2 = 0, 0
+            for epoch in range(epochs):
+                for start in range(0, len(states_agent2), batch_size):
+                    end = start + batch_size
 
-        # Log average losses for the episode
-        avg_agent1_loss = (episode_policy_loss_agent1 + episode_value_loss_agent1) / (epochs * len(states))
-        avg_agent2_loss = (episode_policy_loss_agent2 + episode_value_loss_agent2) / (epochs * len(states))
-        agent1_losses.append(avg_agent1_loss)
-        agent2_losses.append(avg_agent2_loss)
+                    batch_states = torch.FloatTensor(np.array(states_agent2[start:end])).unsqueeze(1).to(device)
+                    batch_actions = torch.LongTensor(actions_agent2[start:end]).to(device)
+                    batch_action_probs = torch.FloatTensor(action_probs_agent2[start:end]).to(device)
+                    batch_returns = returns_agent2[start:end]
+                    batch_advantages = advantages_agent2[start:end]
+
+                    # Update Agent 2
+                    policy_loss_agent2, value_loss_agent2 = agent2.update(batch_states, batch_actions, batch_action_probs, batch_returns, batch_advantages)
+                    episode_policy_loss_agent2 += policy_loss_agent2
+                    episode_value_loss_agent2 += value_loss_agent2
+
+            # Log average losses for Agent 2
+            avg_agent2_loss = (episode_policy_loss_agent2 + episode_value_loss_agent2) / (epochs * max(len(states_agent2), 1))
+            agent2_losses.append(avg_agent2_loss)
+        else:
+            agent2_losses.append(0)
 
         # Log progress every 10 episodes
         if episode % 10 == 0:
             print(f"Episode {episode}: Agent1 Reward: {agent1_reward}, Agent2 Reward: {agent2_reward}, "
                   f"Win Rates -> Agent1: {agent1_win_rate:.2f}, Agent2: {agent2_win_rate:.2f}, "
-                  f"Agent1 Loss: {avg_agent1_loss:.4f}, Agent2 Loss: {avg_agent2_loss:.4f}")
+                  f"Agent1 Loss: {agent1_losses[-1]:.4f}, Agent2 Loss: {agent2_losses[-1]:.4f}")
 
     # Save metrics
     folder = "self_play_ppo"
@@ -170,10 +192,10 @@ if __name__ == "__main__":
     parser.add_argument("--num_episodes", type=int, default=1000, help="Number of training episodes")
     parser.add_argument("--board_size", type=int, default=8, help="Size of the Gomoku board")
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor for future rewards")
-    parser.add_argument("--epsilon", type=float, default=0.1, help="Clipping parameter for PPO")
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate for optimizers")
-    parser.add_argument("--epochs", type=int, default=2, help="Number of epochs per PPO update")
-    parser.add_argument("--batch_size", type=int, default=512, help="Batch size for training")
+    parser.add_argument("--epsilon", type=float, default=0.05, help="Clipping parameter for PPO")
+    parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate for optimizers")
+    parser.add_argument("--epochs", type=int, default=4, help="Number of epochs per PPO update")
+    parser.add_argument("--batch_size", type=int, default=128, help="Batch size for training")
     parser.add_argument("--device", type=str, default=None, help="Device to use for computations ('cpu' or 'cuda')")
     parser.add_argument("--config_name", type=str, default="rewards_2", help="Name of the reward configuration file (without .yml extension)")
 

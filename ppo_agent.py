@@ -112,11 +112,12 @@ class PPOAgent:
     #         # return the selected action and its probability 
     #         return action.item(), action_probs[0, action.item()].item()
 
-    def select_action(self, state: np.ndarray, exploit_only: bool = False):
+    def select_action(self, state: np.ndarray, valid_action_indices: list, exploit_only: bool = False):
         """
         Selects an action based on the policy network's output.
         Args:
             state (np.ndarray): The current state of the board.
+            valid_action_indices (list): List of valid action indices.
             exploit_only (bool): If True, the agent will select the action with the highest probability (greedy).
         Returns:
             action (int): The index of the selected action.
@@ -126,30 +127,29 @@ class PPOAgent:
         action_logits = self.policy_net(state_tensor)
         action_probs = torch.softmax(action_logits, dim=1).cpu().detach().numpy().flatten()
 
-        # Get valid moves
-        valid_moves = [(r, c) for r in range(self.board_size) for c in range(self.board_size) if state[r, c] == 0]
-        valid_action_indices = [r * self.board_size + c for r, c in valid_moves]
-
-        # Mask invalid actions
-        masked_action_probs = np.zeros_like(action_probs)
-        masked_action_probs[valid_action_indices] = action_probs[valid_action_indices]
+        # Extract probabilities for valid actions
+        valid_action_probs = action_probs[valid_action_indices]
 
         if exploit_only:
-            # Select action with highest probability
-            action = np.argmax(masked_action_probs)
-            action_prob = masked_action_probs[action]
+            # Select action with highest probability among valid actions
+            max_idx = np.argmax(valid_action_probs)
+            action = valid_action_indices[max_idx]
+            action_prob = valid_action_probs[max_idx]
         else:
             # Normalize probabilities
-            total_prob = masked_action_probs.sum()
+            total_prob = valid_action_probs.sum()
             if total_prob == 0:
                 # All probabilities are zero, choose randomly among valid moves
                 action = random.choice(valid_action_indices)
                 action_prob = 1.0 / len(valid_action_indices)
             else:
-                masked_action_probs /= total_prob
-                action = np.random.choice(len(masked_action_probs), p=masked_action_probs)
-                action_prob = masked_action_probs[action]
+                valid_action_probs /= total_prob
+                # Sample from valid actions
+                idx = np.random.choice(len(valid_action_indices), p=valid_action_probs)
+                action = valid_action_indices[idx]
+                action_prob = valid_action_probs[idx]
         return action, action_prob
+
 
     
     # computes the advantages and returns for each state-action pair
@@ -240,7 +240,7 @@ class PPOAgent:
 
         # value loss:
         # L_value = (1 / N) * sum_{i=1}^N (V(s_i) - G_i)^2
-        value_preds = self.value_net(states).view(-1) # reshape predictions to a 1D tensor
+        value_preds = self.value_net(states).squeeze()
         value_loss = nn.MSELoss()(value_preds, returns)
         
         # update the value network
