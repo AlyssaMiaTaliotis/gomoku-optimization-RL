@@ -64,7 +64,7 @@ def generate_heatmap(env: GomokuEnvironment, agent, agent_type: str, state: np.n
     plt.show()
 
 
-def computer_vs_human(env: GomokuEnvironment, agent, human_name: str, agent_type: str, config_name: str):
+def computer_vs_human(env: GomokuEnvironment, agent, human_name: str, agent_type: str, config_name: str, generate_heatmaps=False):
     state = env.reset()
     print(f"Welcome, {human_name}! You will play as 'O' (Player 2). The computer is 'X' (Player 1).")
     env.render()
@@ -73,8 +73,9 @@ def computer_vs_human(env: GomokuEnvironment, agent, human_name: str, agent_type
         if env.current_player == 1:
             # Computer's turn
             print("Computer's turn:")
-            generate_heatmap(env, agent, agent_type, state, config_name)
-            
+            if generate_heatmaps:
+                generate_heatmap(env, agent, agent_type, state, config_name)
+                
             if agent_type == "ppo":
                 valid_moves = env.get_valid_moves()
                 valid_action_indices = [r * env.board_size + c for r, c in valid_moves]
@@ -112,6 +113,7 @@ def computer_vs_human(env: GomokuEnvironment, agent, human_name: str, agent_type
         print(f"Game over! {human_name} wins!")
     elif "Draw" in info["info"]:
         print("Game over! It's a draw!")
+
 
 
 
@@ -162,7 +164,10 @@ def main():
     parser.add_argument("--config_name", type=str, default="rewards_default",
                         help="Name of the reward configuration file (without .yml extension).")
     parser.add_argument("--device", type=str, default=None, help="Device to use for computations ('cpu' or 'cuda').")
+    parser.add_argument("--generate_heatmaps", action='store_true',
+                        help="Include this flag to generate heatmaps during the game.")
     args = parser.parse_args()
+
 
     # Load the Gomoku environment
     config_path = f"rewards/{args.config_name}.yml"
@@ -189,7 +194,7 @@ def main():
     # Evaluate based on the mode
     if args.mode == "human":
         human_name = get_human_name()
-        computer_vs_human(env, agent, human_name, args.agent, args.config_name)
+        computer_vs_human(env, agent, human_name, args.agent, args.config_name, generate_heatmaps=args.generate_heatmaps)
     elif args.mode == "rule-based":
         rule_based_vs_computer(env, agent, args.agent)
 
