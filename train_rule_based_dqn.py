@@ -131,7 +131,7 @@ def train_dqn_rule_based(
         os.makedirs(f"{folder}/{rewards_type}")
 
     # Save the final model
-    agent1.save_model(f"{folder}/{rewards_type}/{model_save_path}_{suffix}")
+    agent1.save_model(f"{folder}/{rewards_type}/{model_save_path}_{suffix}.pth")
     print("Training completed and model saved.")
 
     # Save metrics for plotting
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("--board_size", type=int, default=8, help="Size of the Gomoku board")
     parser.add_argument("--config_name", type=str, default="rewards_default", help="Name of the reward configuration file (without .yml extension)")
     parser.add_argument("--device", type=str, default=None, help="Device to use for computations ('cpu' or 'cuda'). If not specified, auto-detects.")
-    parser.add_argument("--model_save_path", type=str, default="dqn_gomoku.pth", help="Path to save the model")
+    parser.add_argument("--model_save_path", type=str, default="dqn_gomoku", help="Path to save the model")
     parser.add_argument("--win_reward", type=str, default="1", help="Value for the win reward")
     args = parser.parse_args()
 
