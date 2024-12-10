@@ -11,7 +11,7 @@ print("Script has started executing.")
 def train_dqn_random(
     num_episodes: int = 1000,
     board_size: int = 8,
-    memory_size: int = 10000000,
+    memory_size: int = 1000000,
     batch_size: int = 512,
     gamma: float = 0.99,
     epsilon_start: float = 1.0,

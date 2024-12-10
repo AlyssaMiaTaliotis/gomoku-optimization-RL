@@ -13,7 +13,7 @@ print("Script has started executing.")
 def train_dqn_rule_based(
     num_episodes: int = 1000,
     board_size: int = 8,
-    memory_size: int = 10000000,
+    memory_size: int = 1000000,
     batch_size: int = 512,
     gamma: float = 0.99,
     epsilon_start: float = 1.0,
@@ -26,6 +26,7 @@ def train_dqn_rule_based(
     model_save_path: str = "dqn_gomoku.pth",
     log_every: int = 10,
     rewards_type: str = "rewards_default",
+    suffix: str = "1",
 ):
     """
     Trains a DQN agent against rule based agent in the Gomoku environment.
@@ -130,13 +131,13 @@ def train_dqn_rule_based(
         os.makedirs(f"{folder}/{rewards_type}")
 
     # Save the final model
-    agent1.save_model(f"{folder}/{rewards_type}/{model_save_path}")
+    agent1.save_model(f"{folder}/{rewards_type}/{model_save_path}_{suffix}")
     print("Training completed and model saved.")
 
     # Save metrics for plotting
-    np.save(f"{folder}/{rewards_type}/win_rates.npy", win_rates)
-    np.save(f"{folder}/{rewards_type}/agent1_rewards.npy", agent1_rewards_list)
-    np.save(f"{folder}/{rewards_type}/agent1_losses.npy", agent1_avg_losses)
+    np.save(f"{folder}/{rewards_type}/win_rates_{suffix}.npy", win_rates)
+    np.save(f"{folder}/{rewards_type}/agent1_rewards_{suffix}.npy", agent1_rewards_list)
+    np.save(f"{folder}/{rewards_type}/agent1_losses_{suffix}.npy", agent1_avg_losses)
     print("Training metrics saved!")
 
 
@@ -147,6 +148,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_name", type=str, default="rewards_default", help="Name of the reward configuration file (without .yml extension)")
     parser.add_argument("--device", type=str, default=None, help="Device to use for computations ('cpu' or 'cuda'). If not specified, auto-detects.")
     parser.add_argument("--model_save_path", type=str, default="dqn_gomoku.pth", help="Path to save the model")
+    parser.add_argument("--win_reward", type=str, default="1", help="Value for the win reward")
     args = parser.parse_args()
 
     # config_path = f"rewards/{args.config_name}.yml"
@@ -157,4 +159,5 @@ if __name__ == "__main__":
         device=args.device,
         model_save_path=args.model_save_path,
         rewards_type=args.config_name,
+        suffix=args.win_reward,
     )
