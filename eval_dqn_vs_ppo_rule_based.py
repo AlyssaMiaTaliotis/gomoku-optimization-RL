@@ -59,7 +59,9 @@ def dqn_vs_ppo(
                 action = (row, col)
             else:
                 # PPO Agent's turn
-                action_index, _ = ppo_agent.select_action(state, exploit_only=True)
+                valid_moves = env.get_valid_moves()
+                valid_action_indices = [row * board_size + col for row, col in valid_moves]
+                action_index, _ = ppo_agent.select_action(state, valid_action_indices, exploit_only=True)
                 row, col = divmod(action_index, board_size)
                 action = (row, col)
 
