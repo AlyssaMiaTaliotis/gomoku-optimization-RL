@@ -2,6 +2,8 @@ import argparse
 import re
 import numpy as np
 import torch
+import warnings
+warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
 from gomoku_env import GomokuEnvironment
 from dqn_agent import DQNAgent
