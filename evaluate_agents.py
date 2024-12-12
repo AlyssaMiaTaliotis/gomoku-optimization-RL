@@ -181,7 +181,7 @@ def main():
         if args.config_name is None:
             args.config_name = "rewards_1"
         if args.win_reward is None:
-            args.win_reward = "1"  # Default for PPO
+            args.win_reward = "10"  # Default for PPO
 
     # Load the Gomoku environment
     config_path = f"rewards/{args.config_name}.yml"

@@ -15,7 +15,7 @@ def dqn_vs_ppo(
     board_size: int = 8,
     device: str = None,
     dqn_model_path: str = "rule_based_dqn/rewards_1/dqn_gomoku_10.pth",
-    ppo_model_path: str = "rule_based_ppo/rewards_1/ppo_gomoku_1.pth",  
+    ppo_model_path: str = "rule_based_ppo/rewards_1/ppo_gomoku_10.pth",  
     log_every: int = 10,
 ):
     # Auto-detect device if not specified
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--board_size", type=int, default=8, help="Size of the Gomoku board")
     parser.add_argument("--device", type=str, default=None, help="Device to use ('cpu' or 'cuda')")
     parser.add_argument("--dqn_model_path", type=str, default="rule_based_dqn/rewards_1/dqn_gomoku_10.pth", help="Path to the trained DQN model")
-    parser.add_argument("--ppo_model_path", type=str, default="rule_based_ppo/rewards_1/ppo_gomoku_1.pth", help="Path to the trained PPO model")
+    parser.add_argument("--ppo_model_path", type=str, default="rule_based_ppo/rewards_1/ppo_gomoku_10.pth", help="Path to the trained PPO model")
     args = parser.parse_args()
 
     dqn_vs_ppo(
