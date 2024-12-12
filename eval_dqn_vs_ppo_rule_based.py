@@ -12,8 +12,8 @@ def dqn_vs_ppo(
     num_games: int = 100,
     board_size: int = 8,
     device: str = None,
-    dqn_model_path: str = "rule_based_dqn/rewards_default/dqn_gomoku.pth",
-    ppo_model_path: str = "rule_based_ppo/rewards_default/ppo_gomoku.pth",
+    dqn_model_path: str = "rule_based_dqn/rewards_1/dqn_gomoku_10.pth",
+    ppo_model_path: str = "rule_based_ppo/rewards_1/ppo_gomoku_1.pth",  
     log_every: int = 10,
 ):
     # Auto-detect device if not specified

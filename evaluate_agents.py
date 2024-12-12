@@ -161,11 +161,12 @@ def main():
                         help="Mode of evaluation: 'rule-based' or 'human'.")
     parser.add_argument("--agent", type=str, required=True, choices=["ppo", "dqn"],
                         help="Agent to use: 'ppo' or 'dqn'.")
-    parser.add_argument("--config_name", type=str, default="rewards_default",
+    parser.add_argument("--config_name", type=str, default="rewards_1",
                         help="Name of the reward configuration file (without .yml extension).")
     parser.add_argument("--device", type=str, default=None, help="Device to use for computations ('cpu' or 'cuda').")
     parser.add_argument("--generate_heatmaps", action='store_true',
                         help="Include this flag to generate heatmaps during the game.")
+    parser.add_argument("--win_reward", type=str, default="10", help="Suffix for the model file names")
     args = parser.parse_args()
 
 
@@ -177,19 +178,20 @@ def main():
     device = args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu")
     device = torch.device(device)
 
-    # Load the specified agent
+        # Load the specified agent
     if args.agent == "ppo":
         agent = PPOAgent(board_size=env.board_size, device=device)
-        # Load the PPO model based on the reward configuration
-        ppo_model_path = f"rule_based_ppo/{args.config_name}/ppo_gomoku.pth"
+        # Load the PPO model based on the reward configuration and suffix
+        ppo_model_path = f"rule_based_ppo/{args.config_name}/ppo_gomoku_{args.win_reward}.pth"
         agent.load_model(ppo_model_path)
     elif args.agent == "dqn":
         agent = DQNAgent(board_size=env.board_size, device=device)
-        # Load the DQN model based on the reward configuration
-        dqn_model_path = f"rule_based_dqn/{args.config_name}/dqn_gomoku.pth"
+        # Load the DQN model based on the reward configuration and suffix
+        dqn_model_path = f"rule_based_dqn/{args.config_name}/dqn_gomoku_{args.win_reward}.pth"
         agent.load_model(dqn_model_path)
     else:
         raise ValueError("Invalid agent type. Choose 'ppo' or 'dqn'.")
+
 
     # Evaluate based on the mode
     if args.mode == "human":
