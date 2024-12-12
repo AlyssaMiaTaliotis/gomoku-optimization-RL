@@ -8,5 +8,6 @@
 *.npy
 
 /rule_based_dqn
+/rule_based_ppo
 /gomoku
 
