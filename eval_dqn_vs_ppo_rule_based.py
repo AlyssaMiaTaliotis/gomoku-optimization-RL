@@ -1,6 +1,8 @@
 import argparse
 import numpy as np
 import torch
+import warnings
+warnings.filterwarnings("ignore")
 from gomoku_env import GomokuEnvironment
 from dqn_agent import DQNAgent
 from ppo_agent import PPOAgent
@@ -50,7 +52,6 @@ def dqn_vs_ppo(
 
         while not done:
             current_player = env.current_player
-
             if current_player == 1:
                 # DQN Agent's turn
                 valid_moves = env.get_valid_moves()
@@ -109,8 +110,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_games", type=int, default=100, help="Number of games to play")
     parser.add_argument("--board_size", type=int, default=8, help="Size of the Gomoku board")
     parser.add_argument("--device", type=str, default=None, help="Device to use ('cpu' or 'cuda')")
-    parser.add_argument("--dqn_model_path", type=str, default="rule_based_dqn/rewards_default/dqn_gomoku.pth", help="Path to the trained DQN model")
-    parser.add_argument("--ppo_model_path", type=str, default="rule_based_ppo/rewards_default/ppo_gomoku.pth", help="Path to the trained PPO model")
+    parser.add_argument("--dqn_model_path", type=str, default="rule_based_dqn/rewards_1/dqn_gomoku_10.pth", help="Path to the trained DQN model")
+    parser.add_argument("--ppo_model_path", type=str, default="rule_based_ppo/rewards_1/ppo_gomoku_1.pth", help="Path to the trained PPO model")
     args = parser.parse_args()
 
     dqn_vs_ppo(
