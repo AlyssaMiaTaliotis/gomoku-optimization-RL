@@ -104,7 +104,7 @@ def train_dqn_random(
                         agent1_reward -= 1  # Penalize Agent 1
                     elif "Draw" in info["info"]:
                         draws += 1
-                break  # End the game
+                break  
 
         # Update target network periodically
         if episode % agent1.update_target_every == 0:
@@ -142,7 +142,7 @@ def train_dqn_random(
     print("Training metrics saved!")
 
 if __name__ == "__main__":
-    import random  # Add this import statement
+    import random  
     parser = argparse.ArgumentParser(description="Train DQN Agent against Random Agent in Gomoku")
     parser.add_argument("--num_episodes", type=int, default=1000, help="Number of training episodes")
     parser.add_argument("--board_size", type=int, default=8, help="Size of the Gomoku board")

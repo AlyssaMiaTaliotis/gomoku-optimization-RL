@@ -194,7 +194,7 @@ def train_dqn_self_play(
                         agent1_reward -= 1  # Penalize Agent 1
                     elif "Draw" in info["info"]:
                         draws += 1
-                break  # End the game
+                break  
 
         # Update target networks periodically
         if episode % agent1.update_target_every == 0:
@@ -215,7 +215,6 @@ def train_dqn_self_play(
         win_rates.append((agent1_win_rate, agent2_win_rate))
 
         if episode % log_every == 0:
-
             # Print progress
             print(f"Episode {episode}, Agent1 Reward: {agent1_reward}, Agent2 Reward: {agent2_reward}, "
                   f"Agent1 Win Rate: {agent1_win_rate:.2f}, Agent2 Win Rate: {agent2_win_rate:.2f}, "

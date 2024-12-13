@@ -151,8 +151,6 @@ if __name__ == "__main__":
     parser.add_argument("--win_reward", type=str, default="1", help="Value for the win reward")
     args = parser.parse_args()
 
-    # config_path = f"rewards/{args.config_name}.yml"
-
     train_dqn_rule_based(
         num_episodes=args.num_episodes,
         board_size=args.board_size,

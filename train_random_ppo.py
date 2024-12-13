@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import torch
 import os
-import random  # Ensure random is imported at the top
+import random  
 from gomoku_env import GomokuEnvironment
 from ppo_agent import PPOAgent
 
@@ -90,10 +90,10 @@ def train_ppo_random(
                         agent1_wins += 1
                     elif "Player 2 wins" in info.get("info", ""):
                         random_agent_wins += 1
-                        agent1_reward -= 1  # Penalize the PPO agent
+                        agent1_reward -= 1  # Penalize Agent 1
                     else:
                         draws += 1
-                break  # End the game
+                break  
 
         # Update win rates
         total_games = agent1_wins + random_agent_wins + draws
@@ -144,7 +144,7 @@ def train_ppo_random(
             print(f"Episode {episode}: Agent1 Reward: {agent1_reward}, "
                   f"Win Rates -> PPO Agent: {agent1_win_rate:.2f}, Random Agent: {random_agent_win_rate:.2f}, "
                   f"Policy Loss: {policy_losses_per_episode[-1]:.4f}, Value Loss: {value_losses_per_episode[-1]:.4f}")
-            # env.render()  # Uncomment to visualize the board
+
 
     # Save metrics
     folder = f"random_ppo/{rewards_type}"
