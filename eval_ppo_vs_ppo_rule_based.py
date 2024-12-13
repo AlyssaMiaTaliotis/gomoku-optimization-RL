@@ -25,7 +25,7 @@ def ppo_vs_ppo(
     device = torch.device(device)
 
     # Initialize environment.
-    # Using agent1's config to initialize the environment. Adjust if needed.
+    # Using agent1's config to initialize the environment
     config_path = f"rewards/{config_name_agent1}.yml"
     env = GomokuEnvironment(board_size=board_size, config_path=config_path)
 

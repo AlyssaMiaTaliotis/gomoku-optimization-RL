@@ -23,7 +23,7 @@ class DQN(nn.Module):
         x=torch.relu(self.conv1(x))
         x=torch.relu(self.conv2(x))
         x=torch.relu(self.conv3(x))
-        x=x.view(x.size(0), -1) # output fro last convolutional layer lattened to a 1D tensor to be fed into fully connected layers
+        x=x.view(x.size(0), -1) # output for last convolutional layer lattened to a 1D tensor to be fed into fully connected layers
         x=torch.relu(self.fc1(x))
         x=self.fc2(x) # outputs raw Q-values for each action
         return x
@@ -102,7 +102,7 @@ class DQNAgent:
         """
         self.steps_done += 1
         if exploit_only:
-            epsilon = 0.0  # Force exploitation
+            epsilon = 0.0  # Force exploitation for evaluation
         else:
             epsilon = self.epsilon
         if random.random() < epsilon:
@@ -217,7 +217,7 @@ class DQNAgent:
         save_data = {
             "state_dict": self.policy_net.state_dict(),
             "board_size": self.board_size,
-            # Add other parameters when needed
+            
         }
         torch.save(save_data, filepath)
 

@@ -13,7 +13,6 @@ def dqn_vs_dqn(
     num_games: int = 100,
     board_size: int = 8,
     device: str = None,
-    # Paths will be formed from arguments
     log_every: int = 10,
     config_name_agent1: str = "rewards_1",
     win_reward_agent1: str = "10",
@@ -25,11 +24,7 @@ def dqn_vs_dqn(
         device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
 
-    # Initialize environment without specifying reward configuration
-    # Since both are DQN and you want to specify possibly different rewards,
-    # you can choose one config to initialize the environment or set a default.
-    # Typically, the environment might not need separate configs for each agent.
-    # We'll just use agent1's config for environment initialization.
+    # Since both are DQN and we want to specify possibly different rewards
     config_path = f"rewards/{config_name_agent1}.yml"
     env = GomokuEnvironment(board_size=board_size, config_path=config_path)
 
