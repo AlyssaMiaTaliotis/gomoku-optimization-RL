@@ -49,32 +49,44 @@ def visualize_training_against_rule_based(rewards_type="rewards_default", log_ev
     agent1_win_rates = [wr[0] for wr in win_rates]
     rule_based_win_rates = [wr[1] for wr in win_rates]
 
+    # Adjust font sizes
+    title_fontsize = 20
+    label_fontsize = 14
+    tick_fontsize = 12
+    legend_fontsize = 12
+
     # Plotting
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(14, 8))
 
     # Plot Win Rates
     plt.subplot(3, 1, 1)
     plt.plot(episodes, agent1_win_rates, label='Agent 1 Win Rate (DQN)', color='blue')
     plt.plot(episodes, rule_based_win_rates, label='Rule-Based Player Win Rate', color='orange')
-    plt.xlabel('Episode')
-    plt.ylabel('Win Rate')
-    plt.title('Win Rates Over Episodes')
-    plt.legend()
+    plt.xlabel('Episode', fontsize=label_fontsize)
+    plt.ylabel('Win Rate', fontsize=label_fontsize)
+    plt.title('Win Rates Over Episodes', fontsize=title_fontsize)
+    plt.legend(fontsize=legend_fontsize)
+    plt.xticks(fontsize=tick_fontsize)
+    plt.yticks(fontsize=tick_fontsize)
+
 
     # Plot Training Losses
     plt.subplot(3, 1, 2)
     plt.plot(np.arange(1, len(agent1_losses) + 1), agent1_losses, label='Agent 1 Loss (DQN)', color='blue')
-    plt.xlabel('Episode')
-    plt.ylabel('Loss')
-    plt.title('Training Losses Over Episodes')
-    # plt.legend()
+    plt.xlabel('Episode', fontsize=label_fontsize)
+    plt.ylabel('Loss', fontsize=label_fontsize)
+    plt.title('Training Losses Over Episodes', fontsize=title_fontsize)
+    plt.xticks(fontsize=tick_fontsize)
+    plt.yticks(fontsize=tick_fontsize)
 
     # Plot Total Rewards per Episode
     plt.subplot(3, 1, 3)
     plt.plot(np.arange(1, len(agent1_rewards) + 1), agent1_rewards, label='Agent 1 Reward (DQN)', color='blue')
-    plt.xlabel('Episode')
-    plt.ylabel('Total Reward')
-    plt.title('Total Rewards Over Episodes')
+    plt.xlabel('Episode', fontsize=label_fontsize)
+    plt.ylabel('Total Reward', fontsize=label_fontsize)
+    plt.title('Total Rewards Over Episodes', fontsize=title_fontsize)
+    plt.xticks(fontsize=tick_fontsize)
+    plt.yticks(fontsize=tick_fontsize)
     # plt.legend()
 
     plt.tight_layout()
