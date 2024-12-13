@@ -30,13 +30,15 @@ This section provides instructions for training the RL agent, playing Gomoku usi
 Follow these steps to train the RL agents against a rule-based player:
 
 1. Prepare the reward configuration:
+
    The reward configurations for training are defined in YAML files. Before running the training script, update the reward values in the YAML files as needed (e.g., adjusting win values to explore different training dynamics).
 
 2. Run the training scripts:
+
     Both train_rule_based_dqn.py and train_rule_based_ppo.py scripts allow customization through command-line arguments. You can adjust these parameters to fine-tune the training process:
     - --num_episodes: Number of training episodes (default: 1000).
     - --board_size: Size of the Gomoku board (default: 8).
-    - --config_name: Name of the reward configuration file (without .yml extension). Update this to match your chosen reward setup (e.g., rewards_offensive).
+    - --config_name: Name of the reward configuration file (without .yml extension). Update this to match your chosen reward setup (e.g., rewards_1).
     - --device: Specify the computation device (cpu or cuda). If not specified, the script auto-detects the available device.
     - --model_save_path: Path to save the trained model (default: dqn_gomoku or equivalent for PPO).
     - --win_reward: Value for the win reward. This should correspond to the win reward set in the YAML configuration.
@@ -55,8 +57,9 @@ Follow these steps to train the RL agents against a rule-based player:
 You can visualize the training metrics for agents trained against a rule-based player using the provided scripts. These visualizations help evaluate the agent’s learning performance, including win rates, losses, and rewards.
 
 1. Run the Visualization Scripts
+
     Both vis_rule_based_dqn.py and vis_rule_based_ppo.py scripts allow customization through command-line arguments. You can adjust these parameters to tailor the visualization process:
-    - --config_name: Name of the reward configuration file used during training (default: rewards_default). Update this to match your chosen reward setup (e.g., rewards_offensive).
+    - --config_name: Name of the reward configuration file used during training (default: rewards_default). Update this to match your chosen reward setup (e.g., rewards_1).
     -  --win_reward: Value for the win reward used during training (default: 1). This should correspond to the win reward specified in the YAML configuration.
 
     Example Commands:
@@ -65,37 +68,24 @@ You can visualize the training metrics for agents trained against a rule-based p
     - Visualize metrics for the PPO agent:
 ``` python vis_rule_based_ppo.py --config_name rewards_2 --win_reward 5 ```
 
-2. The same instructions apply for visualizing metrics from alternative setups (random-based training and sel-play).
+2. The same instructions apply for visualizing metrics from alternative setups (random-based training and self-play).
 
 #### Validate and Select Best Agents
 To validate and compare the performance of trained agents, the project includes scripts to run evaluation matches between different agents. These matches allow for systematic comparison of agents trained with different algorithms, reward configurations, and training setups. The results help identify the best-performing agents and analyze their strategic effectiveness.
 
 1. Evaluation Matches
+
     The following evaluation matches are supported:
     - Agent vs Rule-Based Player (`eval_agent_vs_rule_based.py`): Evaluate how well a trained agent performs against the rule-based player.
     - DQN vs DQN (`eval_dqn_vs_dqn_rule_based.py`): Compare two DQN agents trained with different configurations or setups.
     - PPO vs PPO (`eval_ppo_vs_ppo_rule_based.py`): Compare two PPO agents trained with different configurations or setups.
     - DQN vs PPO (`eval_dqn_vs_ppo_rule_based.py`): Evaluate the performance of a DQN agent against a PPO agent.
 2. Arguments 
+
     Each validation script accepts command-line arguments similar to the ones used in training and visualization to select the preffered configuration.
 
-#### Playing Gomoku with the Trained RL Agent and Generate Heatmaps
+#### Playing Gomoku with the Trained RL Agent and Generating Heatmaps
 The project includes functionality to generate heatmaps that visualize the decision-making processes of RL agents. These heatmaps provide valuable insights into the strategies learned by the agents, highlighting their focus on potential moves during gameplay. Heatmaps can be generated for both DQN and PPO agents while playing against a human.
-
-Customize the heatmap generation by using the following arguments:
-- --mode: Set this to human to enable Agent vs. Human gameplay.
-- --agent: Specify the agent type (ppo or dqn).
-- --config_name: Specify the reward configuration file used during training (default: rewards_default).
-- --win_reward: Set the win reward value used during training (default: 1).
-- --generate_heatmaps: Add this flag to enable heatmap generation.
-
-Example Command:
-
-```python evaluate.py --mode human --agent ppo --config_name rewards_default --win_reward 10 --generate_heatmaps ```
-
-
-
-This feature allows users to play Gomoku against a trained RL agent while generating heatmaps at every step. The heatmaps provide a visual representation of the agent's decision-making process, offering valuable insights into its learned strategies and helping players learn from its moves. Both DQN and PPO agents are supported in this interactive gameplay mode.
 
 During gameplay, the agent dynamically evaluates the board state and highlights its focus on potential moves:
 - DQN Agents: Heatmaps visualize Q-values for each valid move, with darker blue shades representing moves the agent considers most valuable.
